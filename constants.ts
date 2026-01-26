@@ -87,6 +87,7 @@ export const MOCK_STUDENTS: StudentData[] = [
     totalPoints: 15, 
     characterType: CharacterClass.PILOT, 
     level: 1,
+    completedMissions: [],
     scores: {
       lessons: [5, 2, 0, 0, 0, 0],
       homework: 5,
@@ -99,6 +100,7 @@ export const MOCK_STUDENTS: StudentData[] = [
     totalPoints: 45, 
     characterType: CharacterClass.SCIENTIST, 
     level: 2,
+    completedMissions: [],
     scores: {
       lessons: [5, 5, 5, 5, 5, 0],
       homework: 10,
@@ -111,6 +113,7 @@ export const MOCK_STUDENTS: StudentData[] = [
     totalPoints: 95, 
     characterType: CharacterClass.WARRIOR, 
     level: 5,
+    completedMissions: ['sm1_physics_quiz'],
     scores: {
       lessons: [5, 5, 5, 5, 5, 5],
       homework: 20,

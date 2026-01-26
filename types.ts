@@ -17,6 +17,8 @@ export interface StudentData {
   scores: StudentScores; // Részletes pontszámok
   characterType: CharacterClass;
   level: number;
+  isAdmin?: boolean; // New flag for admin users
+  completedMissions?: string[]; // Track IDs of completed missions
 }
 
 export interface Mission {

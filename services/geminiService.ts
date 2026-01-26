@@ -42,16 +42,20 @@ const grantPointsTool: FunctionDeclaration = {
 let client: GoogleGenAI | null = null;
 
 export const initializeGemini = () => {
-  if (!process.env.API_KEY) {
-    console.error("Gemini API Key missing");
+  // Try to get key from Vite env or standard process env
+  // @ts-ignore
+  const apiKey = import.meta.env?.VITE_API_KEY || process.env.API_KEY;
+
+  if (!apiKey) {
+    console.error("Gemini API Key missing. Please set VITE_API_KEY in .env file.");
     return;
   }
-  client = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  client = new GoogleGenAI({ apiKey: apiKey });
 };
 
 export const createChatSession = () => {
   if (!client) initializeGemini();
-  if (!client) throw new Error("API Key hiányzik.");
+  if (!client) throw new Error("API Key hiányzik. Ellenőrizze a konzolt.");
 
   return client.chats.create({
     model: 'gemini-3-flash-preview',

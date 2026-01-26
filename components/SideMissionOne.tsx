@@ -12,15 +12,18 @@ const QUIZ_DATA = [
 interface SideMissionOneProps {
   onClose: () => void;
   onPointsAwarded: (newTotal: number) => void;
+  onMissionComplete: (missionId: string, newTotal: number) => void;
   studentName: string;
 }
 
-const SideMissionOne: React.FC<SideMissionOneProps> = ({ onClose, onPointsAwarded, studentName }) => {
+type SimState = 'ready' | 'flying' | 'finished';
+
+const SideMissionOne: React.FC<SideMissionOneProps> = ({ onClose, onPointsAwarded, onMissionComplete, studentName }) => {
   // --- Simulation State ---
   const [force, setForce] = useState(50);
   const [mass, setMass] = useState(2.0);
   const [distance, setDistance] = useState(0);
-  const [isFlying, setIsFlying] = useState(false);
+  const [simState, setSimState] = useState<SimState>('ready');
   const [history, setHistory] = useState<number[]>([]);
 
   // --- Quiz State ---
@@ -30,7 +33,7 @@ const SideMissionOne: React.FC<SideMissionOneProps> = ({ onClose, onPointsAwarde
   // --- Refs for Animation ---
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const requestRef = useRef<number>(0);
-  const shipXRef = useRef(80);
+  const shipXRef = useRef(40 + (50 / 5)); // Initial position
   const velocityRef = useRef(0);
 
   // Calculate acceleration for display
@@ -51,15 +54,21 @@ const SideMissionOne: React.FC<SideMissionOneProps> = ({ onClose, onPointsAwarde
     ctx.fillStyle = "white";
     for(let i=0; i<20; i++) ctx.fillRect((i*57)%canvas.width, (i*23)%canvas.height, 1, 1);
 
+    // Determine Spring End X
+    // In 'ready' state, spring connects to ship.
+    // In 'flying' or 'finished' state, spring snaps back to rest position (e.g. 60).
+    const springRestX = 60;
+    const springEndX = simState === 'ready' ? shipXRef.current : springRestX;
+
     // Draw Spring
-    const springEndX = isFlying ? 60 : shipXRef.current;
     ctx.strokeStyle = "#ff8c00";
     ctx.lineWidth = 3;
     ctx.beginPath();
     ctx.moveTo(10, groundY - 20);
     // Draw coiled spring segments
-    for(let i=0; i<=12; i++) {
-        const x = 10 + i*((springEndX-10)/12);
+    const segments = 12;
+    for(let i=0; i<=segments; i++) {
+        const x = 10 + i*((springEndX-10)/segments);
         const y = groundY - 20 + (i%2===0 ? 10 : -10);
         ctx.lineTo(x, y);
     }
@@ -75,8 +84,8 @@ const SideMissionOne: React.FC<SideMissionOneProps> = ({ onClose, onPointsAwarde
     ctx.lineTo(0, 15); 
     ctx.fill();
 
-    // Engine Flame (only when flying and on screen)
-    if(isFlying && shipXRef.current < canvas.width - 100) {
+    // Engine Flame (only when flying)
+    if(simState === 'flying' && shipXRef.current < canvas.width - 100) {
         ctx.fillStyle = "orange";
         ctx.beginPath(); 
         ctx.moveTo(-10, -5); 
@@ -85,11 +94,26 @@ const SideMissionOne: React.FC<SideMissionOneProps> = ({ onClose, onPointsAwarde
         ctx.fill();
     }
     ctx.restore();
-  }, [isFlying]);
+  }, [simState]);
+
+  // --- Effect: Handle Slider Changes in Ready State ---
+  useEffect(() => {
+      if (simState === 'ready') {
+          // Calculate initial compression visual
+          // More force = more compression? Or just visual representation.
+          // Let's make the ship start further out if force is higher to simulate "pulling back"?
+          // Actually, usually you pull back to increase force.
+          // Let's say rest is 60. Pulling back to 20 increases force.
+          // But to keep it simple visually matching the original logic:
+          // The previous code did: 40 + (force / 3).
+          shipXRef.current = 40 + (force / 5); 
+          drawScene();
+      }
+  }, [force, mass, simState, drawScene]);
 
   // --- Animation Loop ---
   const animate = useCallback(() => {
-    if (!isFlying) return;
+    if (simState !== 'flying') return;
 
     shipXRef.current += velocityRef.current;
     velocityRef.current *= 0.985; // Friction
@@ -100,34 +124,25 @@ const SideMissionOne: React.FC<SideMissionOneProps> = ({ onClose, onPointsAwarde
         requestRef.current = requestAnimationFrame(animate);
     } else {
         // Stop condition
-        setIsFlying(false);
-        const finalDist = Math.round((force / mass) * 15); // Simulated distance calc matching original
+        setSimState('finished');
+        const finalDist = Math.round((force / mass) * 15); // Simulated distance calc
         setDistance(finalDist);
         setHistory(prev => [...prev, finalDist]);
         drawScene(); // Final draw
     }
-  }, [isFlying, force, mass, drawScene]);
+  }, [simState, force, mass, drawScene]);
 
   // Start Animation Effect
   useEffect(() => {
-    if (isFlying) {
+    if (simState === 'flying') {
       // Initialize flight parameters
       velocityRef.current = (force / mass) * 0.4;
       requestRef.current = requestAnimationFrame(animate);
-    } else {
-      // Reset position visual when not flying (if we just changed sliders)
-      if (shipXRef.current < 800) { // Keep position if it flew out? No, reset for slider logic
-         // Actually, the original code resets shipX based on spring compression when not flying
-         if (!isFlying) {
-            shipXRef.current = 40 + (force / 3);
-            drawScene();
-         }
-      }
-    }
+    } 
     return () => {
       if (requestRef.current) cancelAnimationFrame(requestRef.current);
     };
-  }, [isFlying, animate, force, mass, drawScene]);
+  }, [simState, animate, force, mass]);
 
   // Initial Draw
   useEffect(() => {
@@ -139,9 +154,15 @@ const SideMissionOne: React.FC<SideMissionOneProps> = ({ onClose, onPointsAwarde
     }
   }, [drawScene]);
 
-  const handleLaunch = () => {
-    if (isFlying) return;
-    setIsFlying(true);
+  const handleLaunchToggle = () => {
+    if (simState === 'ready') {
+        setSimState('flying');
+    } else if (simState === 'finished') {
+        // Reset Logic
+        setSimState('ready');
+        setDistance(0);
+        // shipXRef will be reset by the useEffect depending on 'ready' state and force
+    }
   };
 
   // --- Quiz Logic ---
@@ -165,8 +186,10 @@ const SideMissionOne: React.FC<SideMissionOneProps> = ({ onClose, onPointsAwarde
     if (isSuccess) {
         // Send points
         try {
-            const newTotal = await submitMissionProgress(studentName, 10, "sm1_physics_quiz");
+            const missionId = "sm1_physics_quiz";
+            const newTotal = await submitMissionProgress(studentName, 10, missionId);
             onPointsAwarded(newTotal);
+            onMissionComplete(missionId, newTotal);
         } catch (e) {
             console.error("Failed to send points", e);
         }
@@ -211,8 +234,8 @@ const SideMissionOne: React.FC<SideMissionOneProps> = ({ onClose, onPointsAwarde
                     min="20" max="250" 
                     value={force} 
                     onChange={(e) => setForce(Number(e.target.value))}
-                    disabled={isFlying}
-                    className="w-full accent-alert cursor-pointer h-2 bg-gray-700 rounded-lg appearance-none"
+                    disabled={simState !== 'ready'}
+                    className={`w-full accent-alert cursor-pointer h-2 bg-gray-700 rounded-lg appearance-none ${simState !== 'ready' ? 'opacity-50' : ''}`}
                 />
             </div>
             <div className="space-y-4">
@@ -225,21 +248,23 @@ const SideMissionOne: React.FC<SideMissionOneProps> = ({ onClose, onPointsAwarde
                     min="0.5" max="8.0" step="0.5"
                     value={mass} 
                     onChange={(e) => setMass(Number(e.target.value))}
-                    disabled={isFlying}
-                    className="w-full accent-alert cursor-pointer h-2 bg-gray-700 rounded-lg appearance-none"
+                    disabled={simState !== 'ready'}
+                    className={`w-full accent-alert cursor-pointer h-2 bg-gray-700 rounded-lg appearance-none ${simState !== 'ready' ? 'opacity-50' : ''}`}
                 />
             </div>
             <button 
-                onClick={handleLaunch}
-                disabled={isFlying}
+                onClick={handleLaunchToggle}
+                disabled={simState === 'flying'}
                 className={`col-span-full py-4 font-orbitron font-bold text-lg tracking-widest uppercase transition-all
-                    ${isFlying 
+                    ${simState === 'flying' 
                         ? 'bg-gray-700 text-gray-500 cursor-not-allowed' 
-                        : 'bg-alert text-black hover:bg-neon hover:shadow-[0_0_20px_#00f2ff]'
+                        : simState === 'finished'
+                          ? 'bg-blue-600 text-white hover:bg-blue-500' // Reset Button Style
+                          : 'bg-alert text-black hover:bg-neon hover:shadow-[0_0_20px_#00f2ff]' // Launch Button Style
                     }
                 `}
             >
-                {isFlying ? 'FOLYAMATBAN...' : 'LÖKET INDÍTÁSA'}
+                {simState === 'flying' ? 'FOLYAMATBAN...' : simState === 'finished' ? 'VISSZAÁLLÍTÁS (RESET)' : 'LÖKET INDÍTÁSA'}
             </button>
         </div>
 
@@ -258,8 +283,8 @@ const SideMissionOne: React.FC<SideMissionOneProps> = ({ onClose, onPointsAwarde
                     </p>
                     <p className="flex justify-between border-t border-gray-800 pt-2 mt-2">
                         <span className="text-gray-400">Státusz:</span>
-                        <span className={isFlying ? "text-neon animate-pulse" : "text-gray-500"}>
-                            {isFlying ? "REPÜLÉS" : "KÉSZENLÉT"}
+                        <span className={simState === 'flying' ? "text-neon animate-pulse" : "text-gray-500"}>
+                            {simState === 'flying' ? "REPÜLÉS" : simState === 'finished' ? "LEÁLLT" : "KÉSZENLÉT"}
                         </span>
                     </p>
                 </div>
