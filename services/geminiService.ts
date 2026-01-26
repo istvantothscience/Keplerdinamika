@@ -42,9 +42,10 @@ const grantPointsTool: FunctionDeclaration = {
 let client: GoogleGenAI | null = null;
 
 export const initializeGemini = () => {
-  // Try to get key from Vite env or standard process env
+  // Try to get key from Vite env or standard process env safely
+  // This handles both local dev (Vite) and potential Node environments without crashing
   // @ts-ignore
-  const apiKey = import.meta.env?.VITE_API_KEY || process.env.API_KEY;
+  const apiKey = (import.meta && import.meta.env && import.meta.env.VITE_API_KEY) || (typeof process !== 'undefined' && process.env && process.env.API_KEY);
 
   if (!apiKey) {
     console.error("Gemini API Key missing. Please set VITE_API_KEY in .env file.");
