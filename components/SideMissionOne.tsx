@@ -81,6 +81,8 @@ const SideMissionOne: React.FC<SideMissionOneProps> = ({ onClose, onPointsAwarde
     return Math.sin(x * 0.002) * 50 + Math.sin(x * 0.005) * 30 + Math.sin(x * 0.015) * 15 + 250;
   };
 
+  const [terrainFeatures, setTerrainFeatures] = useState(TERRAIN_FEATURES);
+
   const getTerrainHeight = useCallback((x: number) => {
     let y = getBaseTerrain(x);
     
@@ -101,8 +103,6 @@ const SideMissionOne: React.FC<SideMissionOneProps> = ({ onClose, onPointsAwarde
   }, [terrainFeatures]);
 
   const stuckTimerRef = useRef(0);
-
-  const [terrainFeatures, setTerrainFeatures] = useState(TERRAIN_FEATURES);
 
   const handleRestart = useCallback(() => {
       physicsRef.current.x = physicsRef.current.lastCheckpoint;

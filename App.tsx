@@ -12,6 +12,7 @@ import SideMissionFour from './components/SideMissionFour';
 import SideMissionFive from './components/SideMissionFive';
 import SideMissionSix from './components/SideMissionSix';
 import GravitySimulation from './components/GravitySimulation'; // Imported new component
+import NewtonJeepMission from './components/NewtonJeepMission';
 import AdminDashboard from './components/AdminDashboard';
 import CharacterCard from './components/CharacterCard';
 import Prologue from './components/Prologue';
@@ -315,15 +316,12 @@ const App: React.FC = () => {
       {/* Gravity Simulation Overlay */}
       {showGravitySim && <GravitySimulation onClose={() => setShowGravitySim(false)} />}
       
-      {/* Dynamics Simulation Overlay (Placeholder) */}
+      {/* Dynamics Simulation Overlay */}
       {showDynamicsSim && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur">
-              <div className="bg-gray-900 border border-neon p-8 rounded text-center">
-                  <h2 className="text-2xl text-neon font-orbitron mb-4">DINAMIKA SZIMULÁCIÓ</h2>
-                  <p className="text-white font-mono mb-6">Hamarosan érkezik...</p>
-                  <button onClick={() => setShowDynamicsSim(false)} className="px-6 py-2 bg-alert text-black font-bold rounded">BEZÁRÁS</button>
-              </div>
-          </div>
+          <NewtonJeepMission 
+              onClose={() => setShowDynamicsSim(false)} 
+              onMissionComplete={handleMissionComplete} 
+          />
       )}
 
       {/* Quiz Chat Overlay */}
