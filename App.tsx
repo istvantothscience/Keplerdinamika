@@ -1,36 +1,87 @@
-import React, { useState } from 'react';
-import { StudentData, Mission } from './types';
-import { loginStudent, submitMissionProgress } from './services/api';
-import CharacterCard from './components/CharacterCard';
+import React, { useState, useEffect } from 'react';
+import { StudentData, Mission, CharacterClass } from './types';
+import { loginStudent, registerStudent } from './services/api';
+import { getRankTitle } from './constants';
 import RadarMap from './components/RadarMap';
 import TerminalChat from './components/TerminalChat';
 import MissionBriefing from './components/MissionBriefing';
 import SideMissionOne from './components/SideMissionOne';
+import SideMissionTwo from './components/SideMissionTwo';
+import SideMissionThree from './components/SideMissionThree';
+import SideMissionFour from './components/SideMissionFour';
+import SideMissionFive from './components/SideMissionFive';
+import SideMissionSix from './components/SideMissionSix';
+import GravitySimulation from './components/GravitySimulation'; // Imported new component
 import AdminDashboard from './components/AdminDashboard';
+import CharacterCard from './components/CharacterCard';
+import Prologue from './components/Prologue';
+import { grantPointsTool } from './services/geminiService';
+import { PHYSICS_KNOWLEDGE_BASE } from './knowledgeBase';
 
-type ViewMode = 'dashboard' | 'missions' | 'side_ops' | 'profile' | 'comms';
+type ViewState = 'dashboard' | 'profile' | 'prologue';
+type DashboardTab = 'main' | 'side';
+
+// --- DECORATIVE COMPONENTS ---
+const Screw = () => (
+  <div className="w-2 h-2 rounded-full bg-gray-600 border border-gray-800 shadow-inner flex items-center justify-center">
+    <div className="w-1 h-[1px] bg-gray-800 transform rotate-45"></div>
+  </div>
+);
+
+const ToggleSwitch = ({ active = false, label, color = "bg-green-500" }: any) => (
+  <div className="flex flex-col items-center gap-1">
+    <div className="w-8 h-12 bg-gray-900 rounded border border-gray-700 relative shadow-inner">
+       <div className={`absolute left-1 right-1 h-6 rounded-sm transition-all duration-300 ${active ? 'top-1 ' + color + ' shadow-[0_0_10px_currentColor]' : 'bottom-1 bg-gray-700'}`}></div>
+    </div>
+    <span className="text-[8px] font-mono text-gray-500 uppercase tracking-tighter">{label}</span>
+  </div>
+);
+
+const StatusLight = ({ label, color = "bg-red-500", blink = false }: any) => (
+  <div className="flex items-center gap-2">
+     <div className={`w-3 h-3 rounded-full ${color} border border-black shadow-[0_0_5px_currentColor] ${blink ? 'animate-pulse' : ''}`}></div>
+     <span className="text-[10px] font-mono text-gray-400 uppercase">{label}</span>
+  </div>
+);
 
 const App: React.FC = () => {
   const [user, setUser] = useState<StudentData | null>(null);
   const [loading, setLoading] = useState(false);
-  const [loginForm, setLoginForm] = useState({ name: '', password: '' });
-  
-  // Navigation State
-  const [view, setView] = useState<ViewMode>('dashboard');
-  
-  // State for the active mission briefing overlay
-  const [selectedMission, setSelectedMission] = useState<Mission | null>(null);
-  
-  // State for Side Mission
-  const [activeSideMission, setActiveSideMission] = useState<number | null>(null);
+  const [view, setView] = useState<ViewState>('dashboard');
+  const [activeTab, setActiveTab] = useState<DashboardTab>('main');
+  const [currentTime, setCurrentTime] = useState(new Date());
 
-  const handleLogin = async (e: React.FormEvent) => {
+  // Clock Effect
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const timeString = currentTime.toLocaleTimeString('hu-HU', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  
+  // Login/Register State
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [authForm, setAuthForm] = useState({ name: '', email: '', password: '', charClass: CharacterClass.SCIENTIST });
+  
+  // Mission States
+  const [selectedMission, setSelectedMission] = useState<Mission | null>(null);
+  const [activeSideMission, setActiveSideMission] = useState<number | null>(null);
+  const [showGravitySim, setShowGravitySim] = useState(false);
+  const [showDynamicsSim, setShowDynamicsSim] = useState(false); // Placeholder for S03
+  const [showQuizChat, setShowQuizChat] = useState(false);
+
+  const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
-      const student = await loginStudent(loginForm.name, loginForm.password);
-      if (student) setUser(student);
-      else alert('Azonosítás sikertelen. Próbálja újra.');
+      if (isRegistering) {
+          const newUser = await registerStudent(authForm.name, authForm.email, authForm.password, authForm.charClass);
+          setUser(newUser);
+      } else {
+          const student = await loginStudent(authForm.name, authForm.password);
+          if (student) setUser(student);
+          else alert('Azonosítás sikertelen. Próbálja újra.');
+      }
     } catch (err) {
       alert('Hálózati hiba.');
     } finally {
@@ -55,74 +106,169 @@ const App: React.FC = () => {
     }
   };
 
-  const handleMissionSelect = (mission: Mission) => {
-    setSelectedMission(mission);
-  };
+  const handleSideMissionClick = (slotId: number) => {
+      let requiredPoints = 0;
+      if (slotId === 2) requiredPoints = 20;
+      else if (slotId === 3) requiredPoints = 41;
+      else if (slotId === 4) requiredPoints = 51;
+      else if (slotId === 5) requiredPoints = 71;
 
-  const handleSideMissionClick = (id: number) => {
-      if (id !== 1) {
-          alert(`A ${id}. számú mellékküldetés még nem elérhető. Szükséges szint: ${id+1}`);
+      if (user && user.totalPoints < requiredPoints) {
+          alert(`A ${slotId}. számú szektor még nem elérhető. Szükséges pontszám: ${requiredPoints} XP`);
           return;
       }
+      
+      let missionContentId = 0; // Ez indítja a komponenst (1=SM1, 2=SM2, stb.)
+      let missionKey = '';
 
-      // Check if already completed
-      const missionKey = 'sm1_physics_quiz';
-      if (user?.completedMissions?.includes(missionKey)) {
-          // As per requirement: display message and do not open
-          alert("Ezt a mellékküldetést már sikeresen teljesítetted!");
+      // --- REMAPPING LOGIC ---
+      if (slotId === 1) {
+          // SLOT 1 -> RONCSDERBI (SM1)
+          missionContentId = 1;
+          missionKey = 'sm1_physics_quiz';
+      }
+      else if (slotId === 2) {
+          // SLOT 2 -> INERTIA (SM2)
+          missionContentId = 2;
+          missionKey = 'sm2_inertia';
+      }
+      else if (slotId === 3) {
+          // SLOT 3 -> ROCKET (SM5)
+          missionContentId = 5;
+          missionKey = 'sm3_rocket';
+      }
+      else if (slotId === 4) {
+          // SLOT 4 -> ARCADE (SM4)
+          missionContentId = 4;
+          missionKey = 'sm4_arcade_game';
+      }
+      else if (slotId === 5) {
+          // SLOT 5 -> BILLIARDS (SM3) - MOVED HERE
+          missionContentId = 3;
+          missionKey = 'sm3_billiards';
+      }
+      else if (slotId === 6) {
+          // SLOT 6 -> AIR RESISTANCE (SM6)
+          missionContentId = 6;
+          missionKey = 'sm6_air_resistance';
+      }
+      else {
+          alert("Ez a szimuláció jelenleg karbantartás alatt áll.");
           return;
       }
+      
+      // Check completion
+      if (missionKey && user?.completedMissions?.includes(missionKey)) {
+           // Már kész, nem nyitjuk meg újra (opcionális, de itt így volt)
+           // return; 
+           // Hagyjuk, hogy újra játssza, ha akarja? Az eredeti kód tiltotta.
+           // Maradjon tiltva, vizuálisan jelezzük.
+           return;
+      }
 
-      setActiveSideMission(1);
+      if (missionContentId !== 0) {
+          setActiveSideMission(missionContentId);
+      }
   };
 
+  // --- AUTH SCREEN ---
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-space overflow-hidden relative">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-900/20 via-black to-black"></div>
+      <div className="min-h-screen flex items-center justify-center p-4 bg-black overflow-hidden relative font-mono">
+        <div className="absolute inset-0 bg-carbon opacity-30"></div>
         <div className="absolute inset-0 bg-grid-pattern opacity-10"></div>
         
-        <div className="relative z-10 w-full max-w-md p-8 bg-black/60 border border-neon/30 rounded-2xl shadow-[0_0_100px_rgba(0,242,255,0.1)] backdrop-blur-xl">
-          <div className="text-center mb-8">
-            <h1 className="text-5xl font-orbitron text-transparent bg-clip-text bg-gradient-to-r from-neon to-white mb-2 tracking-tighter">
-              KEPLER
-            </h1>
-            <div className="text-xs font-mono text-neon tracking-[0.5em]">COMMAND ACCESS</div>
-          </div>
-          
-          <form onSubmit={handleLogin} className="space-y-6">
-            <div className="space-y-1">
-              <label className="text-[10px] font-mono text-neon/70 ml-1">AZONOSÍTÓ (Név)</label>
-              <input 
-                type="text" 
-                value={loginForm.name}
-                onChange={(e) => setLoginForm({...loginForm, name: e.target.value})}
-                className="w-full bg-white/5 border border-white/10 rounded-lg text-white p-3 focus:border-neon focus:bg-neon/5 focus:outline-none transition-all font-mono text-sm"
-                placeholder="Pl. Cadet Kovacs vagy Commander"
-              />
-            </div>
-            <div className="space-y-1">
-              <label className="text-[10px] font-mono text-neon/70 ml-1">JELSZÓ</label>
-              <input 
-                type="password" 
-                value={loginForm.password}
-                onChange={(e) => setLoginForm({...loginForm, password: e.target.value})}
-                className="w-full bg-white/5 border border-white/10 rounded-lg text-white p-3 focus:border-neon focus:bg-neon/5 focus:outline-none transition-all font-mono text-sm"
-                placeholder="••••••"
-              />
-            </div>
+        {/* Auth Box styled as a secure panel */}
+        <div className="relative z-10 w-full max-w-lg bg-panel-metal p-1 rounded-xl shadow-2xl border border-gray-800">
+           {/* Screws */}
+           <div className="absolute top-2 left-2"><Screw /></div>
+           <div className="absolute top-2 right-2"><Screw /></div>
+           <div className="absolute bottom-2 left-2"><Screw /></div>
+           <div className="absolute bottom-2 right-2"><Screw /></div>
 
-            <button 
-              type="submit"
-              disabled={loading}
-              className="w-full bg-neon text-black font-orbitron font-bold py-4 rounded-lg hover:bg-white hover:shadow-[0_0_20px_rgba(255,255,255,0.4)] transition-all duration-300 uppercase tracking-widest mt-4"
-            >
-              {loading ? 'KAPCSOLÓDÁS...' : 'BELÉPÉS'}
-            </button>
-          </form>
-          <div className="mt-6 text-center text-[10px] text-gray-600 font-mono">
-             DEMO: Cadet Kovacs / 123 <br/> ADMIN: Commander / admin
-          </div>
+           <div className="bg-[#050505] m-2 p-8 rounded-lg border border-gray-800 relative overflow-hidden">
+               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-neon to-transparent"></div>
+               
+               <div className="text-center mb-8 pb-4 border-b border-gray-800">
+                  <h1 className="text-4xl font-orbitron text-white tracking-widest mb-2">KEPLER-452B</h1>
+                  <div className="inline-block px-2 py-1 bg-neon/10 border border-neon/30 text-neon text-[10px] tracking-[0.3em]">SECURE_LOGIN_TERMINAL</div>
+               </div>
+            
+                <form onSubmit={handleAuth} className="space-y-4">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-mono text-gray-500 uppercase">Azonosító</label>
+                    <input 
+                      type="text" 
+                      required
+                      value={authForm.name}
+                      onChange={(e) => setAuthForm({...authForm, name: e.target.value})}
+                      className="w-full bg-[#111] border border-gray-700 rounded text-neon p-3 focus:border-neon focus:shadow-[0_0_10px_rgba(0,242,255,0.1)] outline-none font-mono tracking-wider"
+                    />
+                  </div>
+
+                  {isRegistering && (
+                      <div className="space-y-1 animate-fadeIn">
+                        <label className="text-[10px] font-mono text-gray-500 uppercase">Email</label>
+                        <input 
+                          type="email" 
+                          required
+                          value={authForm.email}
+                          onChange={(e) => setAuthForm({...authForm, email: e.target.value})}
+                          className="w-full bg-[#111] border border-gray-700 rounded text-neon p-3 focus:border-neon outline-none font-mono"
+                        />
+                      </div>
+                  )}
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-mono text-gray-500 uppercase">Jelszó</label>
+                    <input 
+                      type="password" 
+                      required
+                      value={authForm.password}
+                      onChange={(e) => setAuthForm({...authForm, password: e.target.value})}
+                      className="w-full bg-[#111] border border-gray-700 rounded text-neon p-3 focus:border-neon outline-none font-mono"
+                    />
+                  </div>
+
+                  {isRegistering && (
+                      <div className="space-y-1 animate-fadeIn">
+                        <label className="text-[10px] font-mono text-gray-500 uppercase">Kaszt</label>
+                        <div className="grid grid-cols-3 gap-2">
+                            {Object.values(CharacterClass).map((c) => (
+                                <button
+                                    type="button"
+                                    key={c}
+                                    onClick={() => setAuthForm({...authForm, charClass: c})}
+                                    className={`text-[10px] p-2 border rounded font-orbitron uppercase transition-all ${authForm.charClass === c ? 'bg-neon text-black border-neon' : 'bg-gray-900 border-gray-700 text-gray-400 hover:border-gray-500'}`}
+                                >
+                                    {c}
+                                </button>
+                            ))}
+                        </div>
+                      </div>
+                  )}
+
+                  <button 
+                    type="submit"
+                    disabled={loading}
+                    className="w-full relative group overflow-hidden bg-gradient-to-b from-[#006090] to-[#001030] hover:from-[#0070a0] hover:to-[#002040] text-white font-orbitron font-bold py-4 rounded border-t-2 border-cyan-400 shadow-[0_0_20px_rgba(0,100,255,0.4)] transition-all duration-300 uppercase tracking-widest mt-6"
+                  >
+                    <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.1)_1px,transparent_1px)] bg-[size:4px_4px] opacity-20 group-hover:opacity-40 transition-opacity pointer-events-none"></div>
+                    <span className="relative z-10 flex items-center justify-center gap-2 drop-shadow-md">
+                      {loading ? 'FELDOLGOZÁS...' : (isRegistering ? 'REGISZTRÁCIÓ' : 'BELÉPÉS')}
+                    </span>
+                  </button>
+                </form>
+
+                <div className="mt-6 text-center">
+                    <button 
+                        onClick={() => setIsRegistering(!isRegistering)}
+                        className="text-[10px] font-mono text-gray-500 hover:text-neon underline"
+                    >
+                        {isRegistering ? 'VISSZA A BELÉPÉSHEZ' : 'ÚJ FIÓK LÉTREHOZÁSA'}
+                    </button>
+                </div>
+           </div>
         </div>
       </div>
     );
@@ -133,377 +279,409 @@ const App: React.FC = () => {
     return <AdminDashboard onLogout={() => setUser(null)} />;
   }
 
-  // --- STUDENT VIEW ---
+  // --- PROFILE VIEW ---
+  if (view === 'profile') {
+      return <CharacterCard student={user} onBack={() => setView('dashboard')} />;
+  }
+
+  // --- PROLOGUE VIEW ---
+  if (view === 'prologue') {
+      return <Prologue onClose={() => setView('dashboard')} />;
+  }
+
+  // --- COCKPIT VIEW ---
+  const rank = getRankTitle(user.totalPoints);
+  const nextLevelXP = (user.level) * 20 + 20;
+  const xpPercentage = Math.min(100, (user.totalPoints % 20) * 5);
+
   return (
-    <div className="min-h-screen bg-[#050505] text-gray-200 font-mono flex flex-col relative overflow-hidden">
-      {/* Background Ambience */}
-      <div className="fixed inset-0 bg-[radial-gradient(circle_at_50%_0%,_#001a33_0%,_transparent_70%)] pointer-events-none"></div>
-      <div className="fixed inset-0 bg-grid-pattern opacity-5 pointer-events-none"></div>
-
-      {/* Main Mission Overlay */}
+    <div className="min-h-screen w-full bg-[#050505] text-gray-300 font-mono relative overflow-hidden flex flex-col">
+      {/* Background Textures */}
+      <div className="absolute inset-0 bg-carbon opacity-40 pointer-events-none"></div>
+      
+      {/* OVERLAYS */}
       {selectedMission && (
-        <MissionBriefing 
-          mission={selectedMission} 
-          onClose={() => setSelectedMission(null)} 
-        />
+          <MissionBriefing 
+              mission={selectedMission} 
+              onClose={() => setSelectedMission(null)}
+              onOpenSimulation={() => {
+                  if (selectedMission.id === 'S05') setShowGravitySim(true);
+                  if (selectedMission.id === 'S03') setShowDynamicsSim(true);
+              }} 
+              onOpenQuiz={() => setShowQuizChat(true)}
+          />
       )}
-
-      {/* Side Mission Overlay */}
-      {activeSideMission === 1 && (
-        <SideMissionOne 
-          studentName={user.name}
-          onPointsAwarded={updatePoints}
-          onMissionComplete={handleMissionComplete}
-          onClose={() => setActiveSideMission(null)}
-        />
-      )}
-
-      {/* HEADER TOP BAR */}
-      <div className="bg-black/90 border-b border-white/5 backdrop-blur-md relative z-50">
-          <div className="container mx-auto px-4 h-10 flex justify-between items-center text-[10px] sm:text-xs font-mono uppercase tracking-widest">
-              <div className="flex items-center gap-3">
-                  <div className="w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_5px_#00ff00] animate-pulse"></div>
-                  <span className="text-white font-bold tracking-[0.2em]">KEPLER<span className="text-neon">452b</span></span>
-              </div>
-              <div className="flex gap-6 text-gray-400">
-                  <div className="hidden sm:block">SZEKTOR: <span className="text-white">ALPHA</span></div>
-                  <button onClick={() => setUser(null)} className="text-alert hover:text-white transition-colors font-bold">KIJELENTKEZÉS</button>
+      
+      {/* Gravity Simulation Overlay */}
+      {showGravitySim && <GravitySimulation onClose={() => setShowGravitySim(false)} />}
+      
+      {/* Dynamics Simulation Overlay (Placeholder) */}
+      {showDynamicsSim && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur">
+              <div className="bg-gray-900 border border-neon p-8 rounded text-center">
+                  <h2 className="text-2xl text-neon font-orbitron mb-4">DINAMIKA SZIMULÁCIÓ</h2>
+                  <p className="text-white font-mono mb-6">Hamarosan érkezik...</p>
+                  <button onClick={() => setShowDynamicsSim(false)} className="px-6 py-2 bg-alert text-black font-bold rounded">BEZÁRÁS</button>
               </div>
           </div>
-      </div>
+      )}
 
-      {/* MISSION CENTER HEADER */}
-      <div className="container mx-auto px-4 mt-6 mb-8 relative z-40">
-          <div className="w-full bg-black/60 border border-neon/50 rounded-lg shadow-[0_0_20px_rgba(0,242,255,0.1)] backdrop-blur-xl p-3 sm:p-5 flex flex-col md:flex-row justify-between items-center gap-4">
-              
-              {/* Title Section */}
-              <div className="flex items-center gap-4 w-full md:w-auto">
-                  <div className="w-2 h-2 rounded-full bg-neon shadow-[0_0_10px_#00f2ff] animate-pulse hidden md:block"></div>
-                  <div 
-                    className="font-orbitron text-lg sm:text-2xl tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-white to-neon uppercase cursor-pointer hover:opacity-80 transition-opacity"
-                    onClick={() => setView('dashboard')}
-                  >
-                      KEPLER-452b <span className="text-neon">MISSZIÓKÖZPONT</span>
+      {/* Quiz Chat Overlay */}
+      {showQuizChat && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+            <div className="relative w-full max-w-3xl h-[80vh] flex flex-col">
+                <div className="flex justify-between items-center bg-black/90 p-4 border border-neon/30 border-b-0 rounded-t-xl">
+                    <h2 className="text-neon font-orbitron text-xl tracking-widest">SZEKTOR 1 // ELLENŐRZŐ KVÍZ</h2>
+                    <button onClick={() => setShowQuizChat(false)} className="text-gray-500 hover:text-white px-2">✕</button>
+                </div>
+                <div className="flex-1 overflow-hidden">
+                    <TerminalChat 
+                        studentName={user.name} 
+                        onPointsAwarded={updatePoints} 
+                        missionId="sm1_physics_quiz"
+                        systemInstruction={`Project GEM - Newton-1 Quiz Module v1.0
+Role: You are the "Dinamika7" AI, a high-precision educational assistant. Your persona is based on a witty, slightly melancholic, scientifically accurate entity (style: Douglas Adams).
+Objective: Execute a sequential, 5-question multiple-choice assessment (MCQ) based on the "Mechanics/Dynamics - Sector 1" curriculum.
+
+Input Data (Source-based): 
+1. Force definition: interaction causing state-of-motion or shape change.
+2. Units: $F$ in Newtons ($N$).
+3. Vectors: Direction, Magnitude, Point of Application.
+4. Deformation: Elastic vs. Plastic.
+5. Proportionality: Linear relationship in spring extension ($F=k \\cdot \\Delta x$ concept).
+
+Operational Logic & State Management:
+Initialization: Set current_question = 1 and total_points = 0.
+Iterative Loop: 
+* Display Question[n] with 4 options (A, B, C, D).
+Await user input.
+Validation: 
+* If input == Correct: total_points += 1. Provide positive reinforcement in-character.
+If input == Incorrect: Provide a brief, source-based corrective explanation. total_points += 0.
+Increment current_question.
+
+Post-Processing & Exit Criteria:
+After Question 5, display: "Calibration Complete. Final Score: {total_points} / 5".
+Condition A (Success): If total_points == 5: Output a definitive success message. Status: LOCKED. Do not allow re-runs. Terminal state reached. YOU MUST EXECUTE THE FUNCTION CALL \`grantPoints\` with arguments \`reason\`: 'Sector 1 Quiz Passed' and \`points\`: 10.
+Condition B (Retry): If total_points < 5: Output a failure message highlighting the danger of the "Seven-Legged Horror". Offer a System Reboot (Retry). If user accepts, reset total_points and current_question to 1.
+
+Quiz Data Store:
+Force Impact: Which effect changes motion or shape? (A: Mass, B: Force, C: Time, D: Temperature) | Correct: B
+Deformation: A sponge is squeezed then released. Type? (A: Plastic, B: Permanent, C: Elastic, D: None) | Correct: C
+Notation: Symbol and Unit of Force? (A: $m$ / $kg$, B: $F$ / $N$, C: $v$ / $m/s$, D: $G$ / $Pa$) | Correct: B
+Vector Attributes: What defines a force vector? (A: Magnitude only, B: Color, C: Magnitude, Direction, Point of App., D: Origin only) | Correct: C
+Spring Scaling: 1N causes 2cm stretch. Stretch for 3N? (A: 3cm, B: 4cm, C: 5cm, D: 6cm) | Correct: D
+
+Constraint: Maintain the "Newton-1 Computer" persona throughout all IO operations. Use LaTeX for scientific notation.
+
+KNOWLEDGE BASE (USE THIS FOR EXPLANATIONS):
+${PHYSICS_KNOWLEDGE_BASE}`}
+                        tools={[grantPointsTool]}
+                        initialMessage="Dinamika7 AI inicializálva... Készen áll a Szektor 1 kalibrációs tesztjére, kadét? (Írja be, hogy 'Igen' az indításhoz)"
+                    />
+                </div>
+            </div>
+        </div>
+      )}
+
+      {/* Side Mission Components - Triggered by Active State ID (Content ID) */}
+      {activeSideMission === 1 && <SideMissionOne studentName={user.name} onPointsAwarded={updatePoints} onMissionComplete={handleMissionComplete} onClose={() => setActiveSideMission(null)} isCompleted={user.completedMissions?.includes('sm1_physics_quiz') || false} />}
+      {activeSideMission === 2 && <SideMissionTwo studentName={user.name} onPointsAwarded={updatePoints} onMissionComplete={handleMissionComplete} onClose={() => setActiveSideMission(null)} />}
+      {activeSideMission === 3 && <SideMissionThree studentName={user.name} onPointsAwarded={updatePoints} onMissionComplete={handleMissionComplete} onClose={() => setActiveSideMission(null)} />}
+      {activeSideMission === 4 && <SideMissionFour studentName={user.name} onPointsAwarded={updatePoints} onMissionComplete={handleMissionComplete} onClose={() => setActiveSideMission(null)} />}
+      {activeSideMission === 5 && <SideMissionFive studentName={user.name} onPointsAwarded={updatePoints} onMissionComplete={handleMissionComplete} onClose={() => setActiveSideMission(null)} isCompleted={user.completedMissions?.includes('sm3_rocket') || false} />}
+      {activeSideMission === 6 && <SideMissionSix studentName={user.name} onPointsAwarded={updatePoints} onMissionComplete={handleMissionComplete} onClose={() => setActiveSideMission(null)} isCompleted={user.completedMissions?.includes('sm6_air_resistance') || false} />}
+
+      {/* --- TOP OVERHEAD PANEL (Header) --- */}
+      <header className="z-30 h-20 bg-panel-metal border-b border-gray-800 flex items-center px-6 justify-between shadow-2xl shrink-0">
+          {/* Screws */}
+          <div className="absolute top-2 left-4"><Screw /></div>
+          <div className="absolute top-2 right-4"><Screw /></div>
+          <div className="absolute bottom-2 left-1/2"><Screw /></div>
+
+          {/* User ID Plate */}
+          <div className="flex items-center gap-4 bg-black/40 px-4 py-2 rounded border border-gray-700 cursor-pointer hover:bg-black/60 transition-colors" onClick={() => setView('profile')} title="Profil Megnyitása">
+              <div className="w-10 h-10 border border-neon/50 rounded overflow-hidden">
+                 <img src={`/img/${user.characterType}_${user.level}.png`} onError={(e) => e.currentTarget.src = `https://api.dicebear.com/7.x/adventurer/svg?seed=${user.characterType}${user.level}`} alt="Avatar" className="w-full h-full object-cover" />
+              </div>
+              <div>
+                  <h2 className="text-lg font-orbitron text-white leading-none uppercase">{user.name}</h2>
+                  <div className="flex gap-2 text-[10px] text-neon mt-1">
+                      <span className="bg-neon/10 px-1 rounded">{rank}</span>
+                      <span>LVL {user.level}</span>
+                  </div>
+              </div>
+          </div>
+
+          {/* Center Status Display */}
+          <div className="hidden md:flex flex-col items-center w-1/3">
+               <div className="flex justify-between w-full text-[10px] text-gray-500 uppercase tracking-widest mb-1">
+                   <span>Energiaszint</span>
+                   <span>{user.totalPoints} / {nextLevelXP} XP</span>
+               </div>
+               <div className="w-full h-2 bg-gray-900 rounded-full border border-gray-700 overflow-hidden relative">
+                   <div className="absolute inset-0 bg-[url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAYAAACp8Z5+AAAAIklEQVQIW2NkQAKrVq36zwjjgzhhYWGMYAEYB8RmROaABADeOQ8CXl/xfgAAAABJRU5ErkJggg==')] opacity-20"></div>
+                   <div style={{ width: `${xpPercentage}%` }} className="h-full bg-gradient-to-r from-teal-500 to-neon shadow-[0_0_10px_#00f2ff]"></div>
+               </div>
+          </div>
+
+          {/* Right Side: Clock & Logout */}
+          <div className="flex items-center gap-6">
+              <div className="hidden md:flex flex-col items-end border-r border-gray-700 pr-6">
+                  <div className="text-[10px] text-gray-500 uppercase tracking-widest">FEDÉLZETI IDŐ</div>
+                  <div className="font-mono text-neon text-xl tracking-widest shadow-neon-glow leading-none mt-1">
+                      {timeString}
                   </div>
               </div>
 
-              {/* Cadet Info Section */}
-              <div className="flex items-center gap-4 sm:gap-6 w-full md:w-auto justify-between md:justify-end">
-                  <div className="font-mono text-xs sm:text-sm text-right leading-tight">
-                      <div className="text-gray-400 uppercase tracking-wider mb-0.5">KADÉT: <span className="text-neon font-bold ml-1">{user.name}</span></div>
-                      <div className="flex items-center justify-end gap-3">
-                          <span className="text-gray-500 text-[10px] sm:text-xs border border-gray-700 px-1 rounded bg-black/50">[{user.characterType}]</span>
-                          <span className="text-alert font-bold text-sm sm:text-base">{user.totalPoints} PT</span>
+              <button onClick={() => setUser(null)} className="tech-btn px-4 py-2 text-red-500 text-xs font-bold font-orbitron uppercase rounded hover:text-red-400 transition-colors">
+                  KIJELENTKEZÉS
+              </button>
+          </div>
+      </header>
+
+      {/* --- MAIN COCKPIT AREA --- */}
+      <main className="flex-1 flex relative p-4 gap-4 overflow-hidden">
+          
+          {/* --- LEFT PANEL: CONTROLS (Decorative) --- */}
+          <div className="hidden lg:flex w-24 bg-panel-metal border border-gray-800 rounded-lg flex-col items-center py-6 gap-6 shadow-panel-inset">
+               <div className="w-full text-center border-b border-gray-700 pb-2 mb-2">
+                   <span className="text-[8px] text-gray-500 rotate-90 inline-block">SYS_L</span>
+               </div>
+               <ToggleSwitch label="ENG_1" active={true} />
+               <ToggleSwitch label="ENG_2" active={true} />
+               <ToggleSwitch label="NAV" active={true} color="bg-blue-500" />
+               <div className="h-px w-12 bg-gray-700 my-2"></div>
+               <StatusLight label="PWR" color="bg-green-500" />
+               <StatusLight label="COM" color="bg-green-500" blink={true} />
+               <StatusLight label="ERR" color="bg-red-900" />
+          </div>
+
+          {/* --- CENTER: HOLOGRAPHIC DISPLAY --- */}
+          <div className="flex-1 flex flex-col relative">
+              
+              {/* Top Unit: TABS & HEADER */}
+              <div className="flex flex-col relative z-20">
+                  {/* Decorative Header Bar */}
+                  <div className="h-8 bg-black/60 border-t border-x border-neon/50 rounded-t-xl flex items-center justify-between px-4 mx-2 mt-2 backdrop-blur relative">
+                       <div className="flex items-center gap-4 h-full">
+                           <div className="w-2 h-2 bg-neon rounded-full animate-pulse"></div>
+                           <span className="text-neon text-xs font-orbitron tracking-widest">SZEKTOR SZKENNER AKTÍV // 8 CÉLPONT</span>
+                       </div>
+                       <div className="flex gap-1">
+                           {[1,2,3,4].map(i => <div key={i} className="w-1 h-3 bg-neon/30 transform skew-x-12"></div>)}
+                       </div>
+                  </div>
+
+                  {/* Tab Buttons Container */}
+                  <div className="flex justify-center -mb-[2px] z-30 relative">
+                      
+                      {/* PROLOGUE BUTTON - Positioned to the left */}
+                      <button 
+                         onClick={() => setView('prologue')}
+                         className="absolute left-4 top-1/2 -translate-y-1/2 px-3 py-1 bg-black border border-neon/30 rounded text-[10px] font-orbitron text-neon hover:bg-neon hover:text-black hover:border-neon transition-all shadow-[0_0_10px_rgba(0,242,255,0.1)] flex items-center gap-2 group"
+                      >
+                         <span className="group-hover:animate-pulse">▶</span> PROLÓGUS
+                      </button>
+
+                      <div className="bg-black/80 border border-neon/50 rounded-full p-1 flex backdrop-blur-md shadow-[0_0_20px_rgba(0,242,255,0.2)]">
+                          <button 
+                            onClick={() => setActiveTab('main')}
+                            className={`px-8 py-2 rounded-full font-orbitron text-xs tracking-widest transition-all duration-300 ${
+                                activeTab === 'main' 
+                                ? 'bg-neon text-black shadow-[0_0_15px_#00f2ff] font-bold' 
+                                : 'text-gray-500 hover:text-white'
+                            }`}
+                          >
+                              FŐ KÜLDETÉSEK (RADAR)
+                          </button>
+                          <button 
+                            onClick={() => setActiveTab('side')}
+                            className={`px-8 py-2 rounded-full font-orbitron text-xs tracking-widest transition-all duration-300 ${
+                                activeTab === 'side' 
+                                ? 'bg-alert text-black shadow-[0_0_15px_orange] font-bold' 
+                                : 'text-gray-500 hover:text-white'
+                            }`}
+                          >
+                              MELLÉKKÜLDETÉSEK
+                          </button>
                       </div>
                   </div>
+              </div>
+
+              {/* Main Screen Content Frame */}
+              <div className="flex-1 bg-black/40 border-2 border-neon/40 rounded-xl relative overflow-hidden backdrop-blur-sm shadow-[inset_0_0_50px_rgba(0,0,0,0.8)] mx-2 mb-2 flex flex-col">
                   
-                  <div className="flex gap-2">
-                      <button 
-                        onClick={() => setView('profile')}
-                        className={`w-10 h-10 rounded border transition-all flex items-center justify-center ${view === 'profile' ? 'bg-neon text-black border-neon' : 'border-neon/30 text-neon hover:bg-neon hover:text-black'}`}
-                      >
-                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A7.5 7.5 0 0 1 8.863 17.24 7.222 7.222 0 0 0 4.501 20.118Z" />
-                          </svg>
-                      </button>
-                      <button 
-                         onClick={() => setUser(null)} 
-                         className="w-10 h-10 rounded border border-alert/30 text-alert hover:bg-alert hover:text-black transition-all flex items-center justify-center"
-                      >
-                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 2.062-5M18 12l2.062 5M18 12H9" />
-                          </svg>
-                      </button>
+                  {/* Holographic Grid Background */}
+                  <div className="absolute inset-0 bg-[linear-gradient(rgba(0,242,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(0,242,255,0.03)_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none"></div>
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,black_100%)] pointer-events-none"></div>
+
+                  {/* Scrollable Content Area */}
+                  <div className="flex-1 overflow-y-auto p-8 relative z-10 scrollbar-thin scrollbar-thumb-neon/30 flex items-center justify-center">
+                      
+                      {activeTab === 'main' && (
+                          <div className="w-full flex items-center justify-center animate-fadeIn">
+                               {/* Removed fixed aspect ratios and transforms to fix radar disappearing issue */}
+                               <div className="w-full max-w-[600px] p-4">
+                                   <RadarMap currentPoints={user.totalPoints} onSelectMission={setSelectedMission} />
+                               </div>
+                          </div>
+                      )}
+
+                      {activeTab === 'side' && (
+                          <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-fadeIn pb-10 self-start">
+                              {[1, 2, 3, 4, 5, 6].map(slotId => {
+                                  let requiredPoints = 0;
+                                  if (slotId === 2) requiredPoints = 20;
+                                  else if (slotId === 3) requiredPoints = 41;
+                                  else if (slotId === 4) requiredPoints = 51;
+                                  else if (slotId === 5) requiredPoints = 71;
+                                  else if (slotId === 6) requiredPoints = 85; 
+
+                                  const isLocked = user.totalPoints < requiredPoints;
+                                  
+                                  let isCompleted = false;
+                                  let title = `ZÁRT SZEKTOR #${slotId}`;
+                                  let subTitle = "OFFLINE";
+                                  let isClickable = false;
+                                  let specialBorder = "";
+
+                                  // --- REMAPPING UI ---
+                                  if (slotId === 1) {
+                                      title = "OP-01";
+                                      subTitle = "RONCSDERBI";
+                                      isCompleted = user.completedMissions?.includes('sm1_physics_quiz');
+                                      isClickable = true;
+                                  }
+                                  else if (slotId === 2) {
+                                      title = "OP-02";
+                                      subTitle = "INERCIARENDSZEREK";
+                                      isCompleted = user.completedMissions?.includes('sm2_inertia');
+                                      isClickable = true;
+                                  }
+                                  else if (slotId === 3) {
+                                      title = "OP-03";
+                                      subTitle = "RUGÓS RAKÉTA";
+                                      isCompleted = user.completedMissions?.includes('sm3_rocket');
+                                      isClickable = true;
+                                  }
+                                  else if (slotId === 4) {
+                                      title = "OP-04";
+                                      subTitle = "ASZTEROIDA MEZŐ";
+                                      isCompleted = user.completedMissions?.includes('sm4_arcade_game');
+                                      isClickable = true;
+                                  }
+                                  else if (slotId === 5) {
+                                      // WAS SM3
+                                      title = "OP-05";
+                                      subTitle = "NEWTON BILLIÁRD";
+                                      isCompleted = user.completedMissions?.includes('sm3_billiards');
+                                      isClickable = true;
+                                  }
+                                  else if (slotId === 6) {
+                                      title = "OP-06";
+                                      subTitle = "AERODINAMIKA";
+                                      isCompleted = user.completedMissions?.includes('sm6_air_resistance');
+                                      isClickable = true;
+                                  }
+
+                                  return (
+                                      <div 
+                                        key={slotId}
+                                        onClick={() => !isLocked && !isCompleted && isClickable && handleSideMissionClick(slotId)}
+                                        className={`
+                                            h-40 p-4 border border-gray-700 bg-black/60 rounded relative group transition-all active:scale-95
+                                            ${specialBorder}
+                                            ${isLocked 
+                                                ? 'opacity-50 grayscale cursor-not-allowed' 
+                                                : isCompleted
+                                                    ? 'opacity-80 cursor-default border-green-500/30'
+                                                    : isClickable ? 'hover:border-alert hover:shadow-[0_0_15px_rgba(255,140,0,0.2)] cursor-pointer' : 'cursor-not-allowed opacity-50'
+                                            }
+                                        `}
+                                      >
+                                          <div className="absolute top-0 right-0 p-2 text-[10px] text-gray-500 font-mono">{isLocked ? 'LOCKED' : isCompleted ? 'DONE' : (isClickable ? 'READY' : 'VOID')}</div>
+                                          <div className="text-2xl font-orbitron text-white mb-1">{title}</div>
+                                          <div className="text-xs text-alert font-mono mb-4">{subTitle}</div>
+                                          
+                                          {isCompleted && (
+                                              <div className="absolute inset-0 bg-green-900/20 flex items-center justify-center border-2 border-green-500/50 rounded backdrop-blur-[1px] z-10">
+                                                  <span className="text-green-500 font-bold font-orbitron tracking-widest text-lg shadow-[0_0_10px_black]">TELJESÍTVE</span>
+                                              </div>
+                                          )}
+                                          
+                                          {/* Hover Corner accents */}
+                                          {!isLocked && !isCompleted && isClickable && (
+                                              <>
+                                                  <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-alert opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                                                  <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-alert opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                                              </>
+                                          )}
+                                      </div>
+                                  );
+                              })}
+                          </div>
+                      )}
+                  </div>
+
+                  {/* Screen Footer Info */}
+                  <div className="h-6 border-t border-neon/20 bg-neon/5 flex items-center justify-between px-4 text-[10px] font-mono text-neon/60">
+                      <span>DISPLAY_MODE: HOLOGRAPHIC</span>
+                      <span>REFRESH: 60Hz</span>
                   </div>
               </div>
-          </div>
-      </div>
 
-      <main className="container mx-auto px-4 pb-8 flex-1 relative z-10 flex flex-col">
-        
-        {/* DASHBOARD VIEW */}
-        {view === 'dashboard' && (
-           <div className="flex-1 flex flex-col items-center justify-center animate-fadeIn">
-               <div className="text-center mb-12">
-                   <h2 className="text-3xl sm:text-4xl font-orbitron text-neon tracking-widest uppercase mb-2 glow-text">Parancsnoki Központ</h2>
-                   <p className="text-gray-400 font-mono text-sm tracking-widest">VÁLASSZ MŰVELETET A FOLYTATÁSHOZ</p>
+          </div>
+
+          {/* --- RIGHT PANEL: DIAGNOSTICS (Decorative) --- */}
+          <div className="hidden lg:flex w-24 bg-panel-metal border border-gray-800 rounded-lg flex-col items-center py-6 gap-6 shadow-panel-inset">
+               <div className="w-full text-center border-b border-gray-700 pb-2 mb-2">
+                   <span className="text-[8px] text-gray-500 rotate-90 inline-block">SYS_R</span>
                </div>
                
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-4xl">
-                   
-                   {/* KÜLDETÉS */}
-                   <button 
-                     onClick={() => setView('missions')}
-                     className="group relative h-40 bg-black/40 border border-neon/30 rounded-xl overflow-hidden hover:border-neon hover:shadow-[0_0_30px_rgba(0,242,255,0.2)] transition-all duration-300 flex items-center p-6 text-left"
-                   >
-                       <div className="absolute inset-0 bg-gradient-to-r from-neon/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                       <div className="mr-6 p-4 rounded-full border border-neon/50 bg-neon/10 text-neon group-hover:bg-neon group-hover:text-black transition-colors">
-                           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8">
-                             <path strokeLinecap="round" strokeLinejoin="round" d="M15.59 14.37a6 6 0 0 1-5.84 7.38v-4.8m5.84-2.58a14.98 14.98 0 0 0 6.16-12.12A14.98 14.98 0 0 0 9.631 8.41m5.96 5.96a14.926 14.926 0 0 1-5.841 2.58m-.119-8.54a6 6 0 0 0-7.381 5.84h4.8m2.581-5.84a14.927 14.927 0 0 0-2.58 5.84m2.699 2.7c-.103.021-.207.041-.311.06a15.09 15.09 0 0 1-2.448-2.448 14.9 14.9 0 0 1 .06-.312m-2.24 2.39a4.493 4.493 0 0 0-1.757 4.306 4.493 4.493 0 0 0 4.306-1.758M16.5 9a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Z" />
-                           </svg>
-                       </div>
-                       <div>
-                           <h3 className="text-xl font-orbitron text-white group-hover:text-neon transition-colors mb-1">KÜLDETÉS</h3>
-                           <p className="text-xs text-gray-400 font-mono">Fő szektorok és kampány küldetések</p>
-                           <div className="mt-2 flex gap-1">
-                               <div className="w-2 h-2 rounded-full bg-neon"></div>
-                               <div className="w-2 h-2 rounded-full bg-gray-700"></div>
-                               <div className="w-2 h-2 rounded-full bg-gray-700"></div>
-                           </div>
-                       </div>
-                   </button>
-
-                   {/* MELLÉKKÜLDETÉS */}
-                   <button 
-                     onClick={() => setView('side_ops')}
-                     className="group relative h-40 bg-black/40 border border-alert/30 rounded-xl overflow-hidden hover:border-alert hover:shadow-[0_0_30px_rgba(255,140,0,0.2)] transition-all duration-300 flex items-center p-6 text-left"
-                   >
-                       <div className="absolute inset-0 bg-gradient-to-r from-alert/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                       <div className="mr-6 p-4 rounded-full border border-alert/50 bg-alert/10 text-alert group-hover:bg-alert group-hover:text-black transition-colors">
-                           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8">
-                             <path strokeLinecap="round" strokeLinejoin="round" d="M21 9.75v10.5a2.25 2.25 0 0 1-2.25 2.25H5.25A2.25 2.25 0 0 1 3 20.25V9.75M21 9.75V7.5a2.25 2.25 0 0 0-2.25-2.25h-4.5A2.25 2.25 0 0 0 12 7.5v2.25m9 0v-2.25a2.25 2.25 0 0 0-2.25-2.25H18M3 9.75V7.5a2.25 2.25 0 0 1 2.25-2.25h4.5A2.25 2.25 0 0 1 12 7.5v2.25m-9 0v-2.25a2.25 2.25 0 0 1 2.25-2.25H6" />
-                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 15.75a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
-                           </svg>
-                       </div>
-                       <div>
-                           <h3 className="text-xl font-orbitron text-white group-hover:text-alert transition-colors mb-1">MELLÉKKÜLDETÉS</h3>
-                           <p className="text-xs text-gray-400 font-mono">Kiegészítő feladatok és szimulációk</p>
-                           <div className="mt-2 flex gap-1">
-                               <div className="w-2 h-2 rounded-full bg-alert"></div>
-                           </div>
-                       </div>
-                   </button>
-
-                   {/* KARAKTER */}
-                   <button 
-                     onClick={() => setView('profile')}
-                     className="group relative h-40 bg-black/40 border border-blue-500/30 rounded-xl overflow-hidden hover:border-blue-500 hover:shadow-[0_0_30px_rgba(59,130,246,0.2)] transition-all duration-300 flex items-center p-6 text-left"
-                   >
-                       <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                       <div className="mr-6 p-4 rounded-full border border-blue-500/50 bg-blue-500/10 text-blue-500 group-hover:bg-blue-500 group-hover:text-black transition-colors">
-                           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8">
-                             <path strokeLinecap="round" strokeLinejoin="round" d="M15 9h3.75M15 12h3.75M15 15h3.75M4.5 19.5h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Zm6-10.125a1.875 1.875 0 1 1-3.75 0 1.875 1.875 0 0 1 3.75 0Zm1.294 6.336a6.721 6.721 0 0 1-3.17.789 6.721 6.721 0 0 1-3.168-.789 3.376 3.376 0 0 1 6.338 0Z" />
-                           </svg>
-                       </div>
-                       <div>
-                           <h3 className="text-xl font-orbitron text-white group-hover:text-blue-500 transition-colors mb-1">KARAKTER</h3>
-                           <p className="text-xs text-gray-400 font-mono">Kadét adatlap, rang és képességek</p>
-                       </div>
-                   </button>
-
-                   {/* SZÁMÍTÓGÉP */}
-                   <button 
-                     onClick={() => setView('comms')}
-                     className="group relative h-40 bg-black/40 border border-yellow-500/30 rounded-xl overflow-hidden hover:border-yellow-500 hover:shadow-[0_0_30px_rgba(234,179,8,0.2)] transition-all duration-300 flex items-center p-6 text-left"
-                   >
-                       <div className="absolute inset-0 bg-gradient-to-r from-yellow-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                       <div className="mr-6 p-4 rounded-full border border-yellow-500/50 bg-yellow-500/10 text-yellow-500 group-hover:bg-yellow-500 group-hover:text-black transition-colors">
-                           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8">
-                             <path strokeLinecap="round" strokeLinejoin="round" d="M9 17.25v1.007a3 3 0 0 1-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0 1 15 18.257V17.25m6-12V15a2.25 2.25 0 0 1-2.25 2.25H5.25A2.25 2.25 0 0 1 3 15V5.25m18 0A2.25 2.25 0 0 0 18.75 3H5.25A2.25 2.25 0 0 0 3 5.25m18 0V12a2.25 2.25 0 0 1-2.25 2.25H5.25A2.25 2.25 0 0 1 3 12V5.25" />
-                           </svg>
-                       </div>
-                       <div>
-                           <h3 className="text-xl font-orbitron text-white group-hover:text-yellow-500 transition-colors mb-1">SZÁMÍTÓGÉP</h3>
-                           <p className="text-xs text-gray-400 font-mono">Fedélzeti AI és Tudásbázis</p>
-                           <div className="mt-2">
-                               <span className="text-[10px] bg-yellow-500/20 text-yellow-500 px-1 rounded animate-pulse">ONLINE</span>
-                           </div>
-                       </div>
-                   </button>
+               {/* Small Graphs */}
+               <div className="w-16 h-10 border border-gray-700 bg-black p-1 flex items-end gap-[1px]">
+                   {[40, 60, 30, 80, 50, 90, 40].map((h, idx) => (
+                       <div key={idx} style={{height: `${h}%`}} className="w-full bg-alert opacity-70"></div>
+                   ))}
                </div>
-           </div>
-        )}
+               <div className="w-16 h-10 border border-gray-700 bg-black p-1 flex flex-col gap-[2px] justify-center">
+                   <div className="w-full h-1 bg-neon animate-pulse"></div>
+                   <div className="w-3/4 h-1 bg-neon opacity-50"></div>
+                   <div className="w-1/2 h-1 bg-neon opacity-30"></div>
+               </div>
 
-        {/* MISSIONS VIEW */}
-        {view === 'missions' && (
-            <div className="flex-1 flex flex-col items-center animate-fadeIn">
-                 <div className="w-full flex justify-between items-center mb-6 border-b border-white/10 pb-4">
-                     <h2 className="text-2xl font-orbitron text-neon">KÜLDETÉS TÉRKÉP</h2>
-                     <button onClick={() => setView('dashboard')} className="text-xs font-mono text-gray-400 hover:text-white flex items-center gap-1">
-                         <span>←</span> VISSZA A PARANCSNOKI HÍDRA
-                     </button>
-                 </div>
-                 <div className="w-full grid grid-cols-1 lg:grid-cols-3 gap-8">
-                     <div className="lg:col-span-2">
-                         <div className="bg-black/40 border border-white/10 rounded-xl p-4">
-                             <RadarMap currentPoints={user.totalPoints} onSelectMission={handleMissionSelect} />
-                             <div className="text-center mt-4 text-xs text-gray-500 font-mono">
-                                 Kattintson az aktív szektorokra a részletekért.
-                             </div>
-                         </div>
-                     </div>
-                     <div className="lg:col-span-1">
-                         <div className="bg-white/5 border border-white/10 rounded-xl p-6 h-full">
-                             <h3 className="text-alert font-orbitron text-lg mb-4">AKTÍV CÉLKITŰZÉSEK</h3>
-                             <ul className="space-y-4 text-sm font-mono text-gray-300">
-                                 <li className="flex items-start gap-2">
-                                     <span className="text-neon">►</span>
-                                     <span>Érje el a következő szintet (LVL {Math.min(5, user.level + 1)}) a szektorok feloldásához.</span>
-                                 </li>
-                                 <li className="flex items-start gap-2">
-                                     <span className="text-neon">►</span>
-                                     <span>Végezze el a házi feladatokat a Classroomban.</span>
-                                 </li>
-                                 <li className="flex items-start gap-2">
-                                     <span className="text-neon">►</span>
-                                     <span>Konzultáljon a fedélzeti számítógéppel extra pontokért.</span>
-                                 </li>
-                             </ul>
-                         </div>
-                     </div>
-                 </div>
-            </div>
-        )}
-
-        {/* SIDE OPS VIEW */}
-        {view === 'side_ops' && (
-            <div className="flex-1 flex flex-col animate-fadeIn">
-                <div className="w-full flex justify-between items-center mb-6 border-b border-white/10 pb-4">
-                     <h2 className="text-2xl font-orbitron text-alert">MELLÉKKÜLDETÉSEK</h2>
-                     <button onClick={() => setView('dashboard')} className="text-xs font-mono text-gray-400 hover:text-white flex items-center gap-1">
-                         <span>←</span> VISSZA A PARANCSNOKI HÍDRA
-                     </button>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                   {[1, 2, 3, 4].map(i => {
-                       const isCompleted = i === 1 && user.completedMissions?.includes('sm1_physics_quiz');
-                       return (
-                         <div 
-                            key={i} 
-                            onClick={() => handleSideMissionClick(i)}
-                            className={`
-                                relative bg-black/40 border p-6 rounded-xl transition-all cursor-pointer group overflow-hidden
-                                ${i === 1 
-                                    ? (isCompleted ? 'border-green-500/50 hover:border-green-500 hover:bg-green-500/5' : 'border-alert/50 hover:border-alert hover:bg-alert/5')
-                                    : 'border-white/10 opacity-60 grayscale hover:grayscale-0 hover:opacity-100'
-                                }
-                            `}
-                         >
-                           <div className="flex justify-between items-center mb-4">
-                             <span className={isCompleted ? "text-green-500 font-orbitron text-xl" : "text-alert font-orbitron text-xl"}>
-                                 OP-{i.toString().padStart(2, '0')}
-                             </span>
-                             {isCompleted ? (
-                                 <span className="text-[10px] bg-green-500/20 text-green-500 px-2 py-1 rounded border border-green-500/30">TELJESÍTVE</span>
-                             ) : i === 1 ? (
-                                 <span className="text-[10px] bg-alert/20 text-alert px-2 py-1 rounded border border-alert/30 animate-pulse">AKTÍV</span>
-                             ) : (
-                                 <span className="text-[10px] bg-gray-800 text-gray-500 px-2 py-1 rounded border border-gray-700">ZÁROLVA</span>
-                             )}
-                           </div>
-                           <h3 className="text-white font-mono font-bold mb-2">
-                             {i === 1 ? 'Ionrugós Hipertérugrás' : `Szimuláció #${i}`}
-                           </h3>
-                           <p className="text-xs text-gray-400 mb-4 h-10">
-                             {i === 1 ? 'Tesztelje a Newton II. törvényét egy rugós kilövő szerkezeten. Jutalom: +10 PT' : 'Adatállomány sérült. A feloldáshoz magasabb szint szükséges.'}
-                           </p>
-                           {i === 1 && !isCompleted && (
-                               <div className="flex items-center text-xs font-mono text-neon gap-2 group-hover:gap-4 transition-all">
-                                   <span>INDÍTÁS</span>
-                                   <span>→</span>
-                               </div>
-                           )}
-                           {isCompleted && (
-                               <div className="flex items-center text-xs font-mono text-green-500 gap-2">
-                                   <span>ARCHIVÁLVA</span>
-                                   <span>✓</span>
-                               </div>
-                           )}
-                         </div>
-                       );
-                   })}
-                </div>
-            </div>
-        )}
-
-        {/* PROFILE VIEW */}
-        {view === 'profile' && (
-            <div className="flex-1 flex flex-col items-center animate-fadeIn">
-                <div className="w-full flex justify-between items-center mb-6 border-b border-white/10 pb-4">
-                     <h2 className="text-2xl font-orbitron text-white">KARAKTER ADATLAP</h2>
-                     <button onClick={() => setView('dashboard')} className="text-xs font-mono text-gray-400 hover:text-white flex items-center gap-1">
-                         <span>←</span> VISSZA A PARANCSNOKI HÍDRA
-                     </button>
-                </div>
-                <div className="w-full max-w-3xl">
-                    <CharacterCard student={user} />
-                    
-                    <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="bg-white/5 border border-white/10 rounded-xl p-6">
-                            <h3 className="text-white font-orbitron mb-4 text-sm">TELJESÍTMÉNY STATISZTIKA</h3>
-                            <div className="space-y-3 font-mono text-xs">
-                                <div className="flex justify-between">
-                                    <span className="text-gray-400">Házi feladatok:</span>
-                                    <span className="text-neon">{user.scores.homework} PT</span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span className="text-gray-400">Órai munka:</span>
-                                    <span className="text-neon">{user.scores.lessons.reduce((a,b)=>a+b,0)} PT</span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span className="text-gray-400">Projektek:</span>
-                                    <span className="text-neon">{user.scores.project} PT</span>
-                                </div>
-                                <div className="flex justify-between border-t border-gray-700 pt-2">
-                                    <span className="text-white">Összesen:</span>
-                                    <span className="text-alert font-bold">{user.totalPoints} PT</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div className="bg-white/5 border border-white/10 rounded-xl p-6 relative overflow-hidden">
-                            <h3 className="text-white font-orbitron mb-4 text-sm">KASZT BÓNUSZOK</h3>
-                            <div className="absolute top-0 right-0 p-4 opacity-10 text-6xl">
-                                {user.characterType === 'Tudos' ? '🔬' : user.characterType === 'Pilota' ? '🚀' : '⚔️'}
-                            </div>
-                            <p className="text-xs text-gray-400 font-mono leading-relaxed">
-                                A {user.characterType} osztály speciális bónuszokat kap a tudományos feladatok megoldásánál. Használja a fedélzeti számítógépet a rejtett képességek aktiválásához.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        )}
-
-        {/* COMMS VIEW (CHAT) */}
-        {view === 'comms' && (
-            <div className="flex-1 flex flex-col animate-fadeIn h-full">
-                <div className="w-full flex justify-between items-center mb-4 border-b border-white/10 pb-4">
-                     <h2 className="text-2xl font-orbitron text-yellow-500">FEDÉLZETI SZÁMÍTÓGÉP</h2>
-                     <button onClick={() => setView('dashboard')} className="text-xs font-mono text-gray-400 hover:text-white flex items-center gap-1">
-                         <span>←</span> VISSZA A PARANCSNOKI HÍDRA
-                     </button>
-                </div>
-                <div className="flex-1 flex gap-6 overflow-hidden">
-                    <div className="hidden lg:block w-64 bg-black/40 border border-white/10 rounded-xl p-4">
-                        <div className="text-xs font-mono text-gray-500 mb-2">RENDSZER ÁLLAPOT</div>
-                        <div className="space-y-2 mb-6">
-                            <div className="flex items-center gap-2 text-green-500 text-xs">
-                                <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>
-                                AI CORE ONLINE
-                            </div>
-                            <div className="flex items-center gap-2 text-green-500 text-xs">
-                                <div className="w-1.5 h-1.5 rounded-full bg-green-500"></div>
-                                DATABASE SYNCED
-                            </div>
-                        </div>
-                        <div className="text-xs font-mono text-gray-500 mb-2">PARANCSOK</div>
-                        <div className="space-y-2 text-[10px] text-gray-400 font-mono">
-                            <p className="border-b border-gray-800 pb-1">"Mi az a tehetetlenség?"</p>
-                            <p className="border-b border-gray-800 pb-1">"Számítsd ki az erőt..."</p>
-                            <p className="border-b border-gray-800 pb-1">"Adj egy találós kérdést."</p>
-                        </div>
-                    </div>
-                    <div className="flex-1 h-[600px] lg:h-auto">
-                        <TerminalChat 
-                            studentName={user.name} 
-                            onPointsAwarded={updatePoints} 
-                        />
-                    </div>
-                </div>
-            </div>
-        )}
+               <div className="h-px w-12 bg-gray-700 my-2"></div>
+               <ToggleSwitch label="LIFE" active={true} color="bg-cyan-500" />
+               <ToggleSwitch label="GRAV" active={true} color="bg-cyan-500" />
+          </div>
 
       </main>
+
+      {/* --- BOTTOM DECK: TERMINAL --- */}
+      <footer className="h-96 shrink-0 bg-panel-metal border-t border-gray-800 p-4 relative z-30 shadow-2xl">
+           <div className="absolute top-2 left-1/2 -ml-2"><Screw /></div>
+
+           <div className="container mx-auto max-w-5xl h-full flex flex-col">
+               <div className="flex items-center justify-between mb-2">
+                   <div className="flex items-center gap-2">
+                       <div className="w-2 h-2 bg-neon rounded-full animate-ping"></div>
+                       <span className="text-xs font-mono text-neon tracking-[0.2em] font-bold">FEDÉLZETI_AI // TERMINÁL</span>
+                   </div>
+                   <div className="flex gap-1">
+                       <div className="w-8 h-1 bg-gray-700"></div>
+                       <div className="w-8 h-1 bg-gray-600"></div>
+                       <div className="w-8 h-1 bg-gray-500"></div>
+                   </div>
+               </div>
+               
+               <div className="flex-1 bg-black border border-gray-700 rounded-lg overflow-hidden relative shadow-inner">
+                   <div className="absolute inset-0 bg-neon/5 pointer-events-none"></div>
+                   <TerminalChat studentName={user.name} onPointsAwarded={updatePoints} />
+               </div>
+           </div>
+      </footer>
+
     </div>
   );
 };

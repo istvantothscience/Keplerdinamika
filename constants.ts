@@ -30,54 +30,80 @@ export const SECTORS: Mission[] = [
     title: 'Szektor 1: Az Erő', 
     description: 'Diagnosztika és Erőhatások.', 
     minPoints: 0,
-    imageUrl: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=1080',
-    classroomLink: 'https://classroom.google.com/',
-    story: "Üdvözlöm a Kepler-452b-n. A hajónk jelenleg úgy néz ki, mint egy konzervdoboz, amit egy fekete lyuk rágott meg, majd kiköpött. Az első feladatunk: rájönni, miért nem működik semmi. A diagnosztikai modul szerint az 'Erő' fogalma hiányzik az adatbázisból. Kérem, pótolja, mielőtt a létfenntartó rendszer is sztrájkba lép."
+    imageUrl: 'https://raw.githubusercontent.com/istvantothscience/images/a0f0d83e6472a03607d680212d98f1e788dc3594/Gemini_Generated_Image_qrt05xqrt05xqrt0.png',
+    classroomLink: 'https://docs.google.com/document/d/1B9pFi-MTtiR53R9Z0Li2WmW81NWhhCqXOxOfQixpauw/edit?usp=sharing',
+    story: "A Newton-1 roncsaiból gomolygó füst lassan beleolvadt a narancssárga égboltba. A legénység még szédült a becsapódástól, amikor a Computer – a hajó depressziós MI-je – megszólalt:\n\n– Kapitány, az ionrugó a becsapódáskor látványos ívben a Sárga-dűnék közé távozott. Nélküle a hajó örökre mozdulatlan marad.\n\nA csapat elindult a kénes homoktengerben, ahol hamarosan egy hatalmas, megcsavarodott zsilipajtó állta útjukat. A radar szerint az ionrugó pontosan a fémtörmelék mögött pihent, félig a homokba fúródva.\n\n– A vonósugár halott – sóhajtotta az MI. – Ahhoz, hogy hozzáférjetek, magatoknak kell megértenetek az erőhatásokat. Meg kell mérnetek az erők irányát és nagyságát, és ki kell számolnotok, mekkora nyomást bír el az ionrugó, mielőtt véglegesen deformálódna.\n\nA feladat adott volt: mérni, számolni és emelni, mielőtt a bolygó barátságtalan fizikája végleg maga alá temeti a küldetést.",
+    type: 'main'
   },
   { 
     id: 'S02', 
     title: 'Szektor 2: Tehetetlenség', 
     description: 'Newton I. törvénye.', 
     minPoints: 20,
-    imageUrl: 'https://images.unsplash.com/photo-1537151608828-ea2b11777ee8?q=80&w=1080',
+    imageUrl: 'https://raw.githubusercontent.com/istvantothscience/images/4d7409e27ce0e45df610d69cfa28c807fa335ed1/Gemini_Generated_Image_rdebqnrdebqnrdeb.png',
     classroomLink: 'https://classroom.google.com/',
-    story: "A hajtóműveink leálltak, de a hajó még mindig sodródik. Newton I. törvénye szerint ez így is marad, amíg neki nem megyünk valaminek. Ami valószínűleg egy aszteroida lesz. A számításaim szerint 99.9% az esélye a végzetes ütközésnek, de ne hagyja, hogy ez elrontsa a kedvét. Tanulmányozza a tehetetlenséget!"
+    story: "A Newton-1 roncsaiban a Computer váratlanul életre kelt. – Kapitány, a szenzoraim egy gyenge, de egyértelmű jelet fogtak a Kavicsos-fennsík irányából. Ha a kalkulációim nem tévednek –, ott pihen a központi vezérlőmodul.\n\nA csapat elindult a kietlen fennsíkon. Útközben a Műszerész egy pillanatra megtorpant egy mély, furcsa benyomódás mellett a narancssárga homokban. Úgy nézett ki, mint egy hatalmas lábnyom, de a szél már majdnem elmosta. A radar végül egy gyanúsan sima, többtonnás sziklához vezette őket. Alatta, a peremnél ott csillant a vezérlőmodul. A Pilóta megpróbálta lassan kihúzni, de az alkatrész meg sem moccant.\n\n– A tehetetlenség makacs dolog – jegyezte meg a Computer. – Ez a szikla és a modul most egyetlen mozdulatlan tömbként viselkedik. Ha lassan húzzátok, a súrlódás és a nyugalmi állapot iránti ragaszkodás győz.\n\n– Newton első törvénye a kulcs! – vágott közbe a Tudós, miközben önkéntelenül is vissza-visszapillantott a homokban hagyott nyom irányába. – Ha lassan húzzuk, a szikla velünk jön. De ha hirtelen, hatalmas erőt fejtünk ki, a szikla a saját tehetetlensége miatt egy pillanatig „helyben marad”, és a modul kiszabadul.\n\nA legénység rögzítette a kábeleket. Tudták, hogy csak egyetlen esélyük van egy gyors rántásra, mielőtt kiderül, hogy az idegen bolygó nem lakatlan.",
+    type: 'main'
   },
   { 
     id: 'S03', 
     title: 'Szektor 3: Dinamika', 
     description: 'Newton II. törvénye.', 
     minPoints: 41,
-    imageUrl: 'https://images.unsplash.com/photo-1614728853911-53e3d2f9b252?q=80&w=1080',
-    classroomLink: 'https://classroom.google.com/',
-    story: "Sikerült beindítani egy segédhajtóművet! Most már csak azt kell kiszámolni, mekkora Erő (F) kell ahhoz, hogy ezt a Tömegű (m) roncshalmazt Gyorsulásra (a) bírjuk. Ha elvéti a képletet, a Napba zuhanunk. Nincs nyomás."
+    imageUrl: 'https://raw.githubusercontent.com/istvantothscience/images/91e65bf8f1f345cf03beda4d22987bc8cf69c514/Gemini_Generated_Image_vcs82jvcs82jvcs8.png',
+    classroomLink: 'https://docs.google.com/document/d/1jNo89SAJWUsQj1PptEGx_fKEBijaBj2O1kZ5ezl9fF0/edit?usp=sharing',
+    story: "A vezérlőmodul birtokában a Computer ziháló hangon közölte: – Kapitány, újabb jel! A hajtómű-stabilizátor a távoli Déli Kőhegységekben van, ami egy olyan hely, ahova az ember csak akkor megy, ha szándékosan el akar tévedni, vagy ha egy sci-fi író rájön, hogy kell még egy fejezet. Eljutni oda a megmaradt, félig szétszerelt marsjárónkkal.\n\nA rozoga marsjáró döcögött a narancssárga porban, és minden egyes „kattogó” hangot, amit a jármű kibocsátott, idegesen elemeztek, hogy vajon műszaki hiba, vagy a \"lábnyom-tulajdonos\" közeledik. A Déli Kőhegységek között, egy szurdok mélyén ott feküdt a stabilizátor. A Pilóta már éppen örömtáncot lejtett volna, amikor a Műszerész halálra vált arccal bámult a marsjáró mögé.\n\nOtt állt. Hatalmas volt, legalább háromszor akkora, mint egy nagyobb mosógép, és a \"lábnyom\" tökéletesen illett hozzá. Hét ízelt lába volt, ami valószínűleg aerodinamikailag optimális valamilyen bolygón, de itt, a Kepler-452b-n kifejezetten ijesztőnek hatott. A lény kibocsátott egy olyan hangot, ami leginkább egy mélytengeri kürt és egy rozsdás harmonika keresztezésére hasonlított, és elindult feléjük.\n\n– GYORSAN! – üvöltötte a Tudós, miközben az agya már a számításokat pörgette. – A Dinamika Alaptörvénye! Ha ugyanazt az erőt fejtjük ki a marsjáróval, akkor a gyorsulásunk annál nagyobb lesz, minél kisebb a tömegünk!\n\n– Dobáljunk le mindent! – parancsolta a Kapitány. Először a felesleges szerszámok repültek, majd a tartalék üzemanyag-tartályok. A marsjáró lassan gyorsulni kezdett, de a lény is.\n\n– Még mindig nem elég! – kiabált a Technológus, ahogy az űrlény már csak méterekre volt tőlük. – A sebesség! A gyorsulás!\n\nA legénység kétségbeesetten kapkodott. Lehajították az összes személyes holmijukat, a pótrészeleteket, sőt, még a szimulációs VR-sisakokat is. A marsjáró megint kicsit meggyorsult.\n\n– Még! – rikoltozta a Pilóta. – Azt hiszem, ez a lény már a recepten gondolkodik!\n\nAztán eljött a borzalmas döntés. – Víz és élelem! – mondta ki a Tudós a legnehezebb szavakat, miközben mindenki tudta, ez a túlélés ára. Minden utolsó víztartály és energiarúd a porba vágódott, míg a marsjáró végre, fájdalmasan lassan, de fokozatosan maga mögött hagyta a kergetőző lényt.\n\nÉlve maradtak, de üres kézzel, száraz torokkal és egy nagyon éles leckével a dinamika alaptörvényéről.",
+    type: 'main'
   }, 
   { 
     id: 'S04', 
-    title: 'Szektor 4: Gravitáció', 
-    description: 'Vonzás és súly.', 
+    title: 'Szektor 4: Hatás-Ellenhatás', 
+    description: 'Newton III. törvénye.', 
     minPoints: 51,
-    imageUrl: 'https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?q=80&w=1080',
+    imageUrl: 'https://raw.githubusercontent.com/istvantothscience/images/6122c642749792f9214a57a965dfd7f18c47f961/Gemini_Generated_Image_ywjhjxywjhjxywjh.png',
     classroomLink: 'https://classroom.google.com/',
-    story: "A bolygó felszíne felé zuhanunk. A jó hír: van gravitáció. A rossz hír: van gravitáció. Ideje megtanulni a különbséget a tömeg és a súly között, különben nagyon laposak leszünk a földetérésnél."
+    story: "A legénység éppen kezdte elhinni, hogy a „Hétlábú Iszonyat” már csak egy rossz emlék, amikor a Computer melankolikus hangon közölte a hírt: – Kapitány, egy ismeretlen, de kétségtelenül éhes entitás nagy sebességgel közelít. Eközben a Kénes-mocsár közepén egy mentőkabin jeladója „Kinetikus Stabilizátort” ígér. Nélküle a hajónk felszálláskor úgy rázkódna, mint egy koffeinfüggő robot az elvonón.\n\nA mocsár szélén megálltak. A sűrű, sárga iszap olyan volt, mintha a bolygó emésztési zavarokkal küzdene. A stabilizátor tíz méterre pihent egy sziklán, de a gázolás egyet jelentett volna a kozmikus lassított halállal. Ráadásul a hátuk mögül érkező baljós kattogás jelezte: a „valami” hamarosan bemutatkozik.\n\n– Ha nem tudunk lépni, lökjük magunkat! – kiáltott fel a Tudós. – Newton III. törvénye: Hatás-Ellenhatás! Ha a felesleges cuccokat nagy erővel hátrafelé hajítjuk, a visszalökő erő (az ellenhatás) áttol minket a mocsáron a szigetig.",
+    type: 'main'
   },
   { 
     id: 'S05', 
-    title: 'Szektor 5: Súrlódás', 
-    description: 'Ellenállás és mozgás.', 
+    title: 'Szektor 5: Gravitáció', 
+    description: 'Vonzás és súly.', 
     minPoints: 71,
-    imageUrl: 'https://images.unsplash.com/photo-1541873676-a18131494184?q=80&w=1080',
+    imageUrl: 'https://raw.githubusercontent.com/istvantothscience/images/8c3bcde264516d7c225a89b93bf4ddf69393f45b/Gemini_Generated_Image_ko4b1kko4b1kko4b.png',
     classroomLink: 'https://classroom.google.com/',
-    story: "Sikeresen landoltunk (értsd: becsapódtunk). Most el kell húznunk a roncsokat a bázisig. A talaj azonban nem egyezik bele. Súrlódás. Tapad. Csúszik. Vagyis nem csúszik. Oldja meg, Kadét."
+    story: "A Newton-1 zsilipjei olyan hermetikus dühvel csattantak össze a kénes iszaptól csöpögő legénység mögött, hogy a bűz jelentős része – a Computer legnagyobb sajnálatára – bent rekedt a folyosón. A mocsári kaland után, ahol a hatás-ellenhatás törvényét (Newton III.) használták menekülésre, a csapat végre kifújhatta magát. Vagyis csak fújta volna, ha a hajó burkolatán nem kezdődik el egy olyan hangos kaparászás, mintha egy galaktikus óriás próbálna konzervnyitó nélkül bejutni egy bádogdobozba.\n\n– Computer – lihegte a Kapitány, miközben próbálta lemosni magáról a sárga ragacsot –, van valami a fegyvertárban, ami hatásosabb egy szigorú nézésnél?\n\n– Sajnálattal közlöm – válaszolt az MI a szokásos, lélekölő nyugalmával –, hogy a védelmi rendszerünk jelenleg egyetlen funkcióra korlátozódik: képes lejátszani egy nagyon udvarias, de határozott figyelmeztetést tizenkét nyelven, köztük egy olyan bolygóén is, amelyik már ötmilliárd éve megsemmisült. Azonban van egy javaslatom. Ez a pók-szerű entitás, amely éppen a hajó festését teszi tönkre, tekintélyes tömeggel bír. Mi lenne, ha a bolygó legalapvetőbb szolgáltatását, a gravitációt hívnánk segítségül?\n\n– A „Newtoni Satu”! – kiáltott fel a Tudós. – A rakodótér feletti mágneses daruval egy tíztonnás hajtóműblokkot függesztünk a zsilip fölé. Amikor az Iszonyat besétál alá, egyszerűen kikapcsoljuk a tartóerőt.\n\n– Zseniális – vetette közbe a Műszerész –, de ha elrontjuk a számítást, csak egy nagyon dühös és lapos pókot kapunk, vagy ami még rosszabb: elhibázzuk. Ismernünk kell a különbséget a tömeg, a gravitációs erő és a súly között, különben a csapda beszakad alattunk, vagy le sem esik időben.",
+    type: 'main'
   },
   { 
     id: 'S06', 
     title: 'Szektor 6: Végjáték', 
     description: 'Komplex dinamika.', 
-    minPoints: 91,
+    minPoints: 85,
     imageUrl: 'https://images.unsplash.com/photo-1454789548728-85d2696cf667?q=80&w=1080',
     classroomLink: 'https://classroom.google.com/',
-    story: "Gratulálok. Túléltük. Már csak a végső vizsga van hátra, hogy bebizonyítsa, nem csak a szerencsének köszönhetően vagyunk életben. A rendszer teljes kapacitással üzemel. Indítsa a szimulációt."
+    story: "A Newton-1 raktárában olyan csend lett, amit csak a „Hétlábú Iszonyat” maradványai alól kiszivárgó, gyanúsan lila gőz sziszegése tört meg. A Newtoni Satu – az a bizonyos tíztonnás vastömb – precízen és visszavonhatatlanul pontot tett az üldözés végére.\n\n– Nos – szólalt meg a Computer, és a hangjában mintha egy árnyalatnyi elégedettség csillant volna meg a gyászinduló helyett –, úgy tűnik, az ex-pókunk mostantól két dimenzióban folytatja pályafutását. Mint egy rosszul sikerült rágógumi a galaxis járdáján.\n\nA Kapitány óvatosan odalépett a kilapított monstrumhoz. A roncsok közül egy furcsa, fénylő szövetdarab lógott ki, ami leginkább egy óriási, ezüstös pók hálójára emlékeztetett, de annál ezerszer erősebbnek tűnt.\n\n– Ez az! – kiáltott fel a Műszerész. – Ez a szuperkönnyű, de elpusztíthatatlan molekuláris háló! Ebből tudjuk megcsinálni a vészhelyzeti űrejtőernyőt. Mert ugye a felszállás egy dolog, de ha a gravitáció meggondolja magát, nem árt, ha nem egy tégla sebességével érkezünk vissza a felszínre.\n\n– Valóban – jegyezte meg a Computer. – Bár a zuhanás maga technikailag nem fájdalmas, az a hirtelen megállás a végén... na, az tud kellemetlen lenni. Ahhoz, hogy ezt a hálót életmentő eszközzé alakítsák, meg kell érteniük, miért nem esik le egy kiterített lepedő olyan gyorsan, mint egy ugyanakkora, de golyóvá gyúrt papírgalacsin.\n\nA legénység a hangár felé vette az irányt, kezükben a titán orrkúppal és az ezüstös hálóval. Már csak az utolsó simítások voltak hátra: a rakéta elejét olyanra kellett faragniuk, mint egy dühös kardhal, az ejtőernyőt pedig olyanra, ami még a legvékonyabb gázmolekulába is belekapaszkodik.",
+    type: 'main'
+  },
+  { 
+    id: 'PROJEKT', 
+    title: 'Kutatási Projekt', 
+    description: 'Önálló kutatómunka.', 
+    minPoints: 90,
+    imageUrl: 'https://images.unsplash.com/photo-1581093458791-9f3c3900df4b?q=80&w=1080',
+    classroomLink: 'https://classroom.google.com/',
+    story: "A Parancsnokság elvárja a részletes jelentést a bolygó fizikájáról.",
+    type: 'project'
+  },
+  { 
+    id: 'TESZT', 
+    title: 'Záróvizsga', 
+    description: 'Tudáspróba.', 
+    minPoints: 95,
+    imageUrl: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?q=80&w=1080',
+    classroomLink: 'https://classroom.google.com/',
+    story: "Ez az utolsó akadály a Parancsnoki rang előtt. Ne rontsa el.",
+    type: 'exam'
   },
 ];
 
@@ -90,8 +116,8 @@ export const MOCK_STUDENTS: StudentData[] = [
     completedMissions: [],
     scores: {
       lessons: [5, 2, 0, 0, 0, 0],
-      homework: 5,
-      project: 3,
+      homework: [5, 0, 0, 0, 0, 0],
+      project: 0,
       exam: 0
     }
   },
@@ -103,7 +129,7 @@ export const MOCK_STUDENTS: StudentData[] = [
     completedMissions: [],
     scores: {
       lessons: [5, 5, 5, 5, 5, 0],
-      homework: 10,
+      homework: [5, 5, 0, 0, 0, 0],
       project: 10,
       exam: 0
     }
@@ -116,7 +142,7 @@ export const MOCK_STUDENTS: StudentData[] = [
     completedMissions: ['sm1_physics_quiz'],
     scores: {
       lessons: [5, 5, 5, 5, 5, 5],
-      homework: 20,
+      homework: [5, 5, 5, 5, 0, 0],
       project: 20,
       exam: 25
     }

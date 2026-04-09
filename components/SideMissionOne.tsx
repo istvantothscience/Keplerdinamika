@@ -1,208 +1,469 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { submitMissionProgress } from '../services/api';
 
-// Quiz Data derived from the provided HTML
-const QUIZ_DATA = [
-  { q: "Milyen hatással van az erő az űrhajóra?", a: ["Alakváltoztató hatása", "Mozgásállapotváltoztató hatása", "Nincs rá hatással"], c: 1 },
-  { q: "Hogyan változik az űrhajó mozgásállapota, ha növeljük a rugó erejét?", a: ["Kisebb lesz a sebességváltozás", "Nagyobb lesz a sebességváltozás", "Nem változik"], c: 1 },
-  { q: "Mi a kapcsolat a tömeg és a mozgásállapot-változás (gyorsulás) között?", a: ["Egyenes arányosság", "Fordított arányosság", "Nincs kapcsolat"], c: 1 },
-  { q: "Ha ugyanazzal az erővel lökünk el egy nehezebb űrhajót, az...", a: ["Messzebbre jut", "Közelebb áll meg", "Ugyanoda jut"], c: 1 }
-];
-
 interface SideMissionOneProps {
   onClose: () => void;
   onPointsAwarded: (newTotal: number) => void;
   onMissionComplete: (missionId: string, newTotal: number) => void;
   studentName: string;
+  isCompleted?: boolean;
 }
 
-type SimState = 'ready' | 'flying' | 'finished';
+type SimState = 'intro' | 'driving' | 'crashed' | 'matching' | 'completed';
 
-const SideMissionOne: React.FC<SideMissionOneProps> = ({ onClose, onPointsAwarded, onMissionComplete, studentName }) => {
-  // --- Simulation State ---
-  const [force, setForce] = useState(50);
-  const [mass, setMass] = useState(2.0);
-  const [distance, setDistance] = useState(0);
-  const [simState, setSimState] = useState<SimState>('ready');
-  const [history, setHistory] = useState<number[]>([]);
+const QUANTITIES = [
+  { id: 'q1', label: 'Erő (F)', match: 'u1' },
+  { id: 'q2', label: 'Út (s)', match: 'u2' },
+  { id: 'q3', label: 'Tömeg (m)', match: 'u3' },
+  { id: 'q4', label: 'Sebesség (v)', match: 'u4' },
+  { id: 'q5', label: 'Idő (t)', match: 'u5' },
+  { id: 'q6', label: 'Gyorsulás (a)', match: 'u6' },
+];
 
-  // --- Quiz State ---
-  const [answers, setAnswers] = useState<{[key: number]: number}>({});
-  const [quizResult, setQuizResult] = useState<{score: number, text: string, success: boolean} | null>(null);
+const UNITS = [
+  { id: 'u1', label: 'Newton (N)' },
+  { id: 'u2', label: 'méter (m)' },
+  { id: 'u3', label: 'kilogramm (kg)' },
+  { id: 'u4', label: 'méter/szekundum (m/s)' },
+  { id: 'u5', label: 'másodperc (s)' },
+  { id: 'u6', label: 'méter/szekundum² (m/s²)' },
+];
 
-  // --- Refs for Animation ---
+const SHUFFLED_UNITS = [...UNITS].sort(() => Math.random() - 0.5);
+
+// Pre-generate terrain features (jumps only)
+const TERRAIN_FEATURES = Array.from({ length: 20 }).map((_, i) => ({
+    x: 800 + i * 300 + Math.random() * 100, // Spread out features
+    type: 'jump',
+    size: 15 + Math.random() * 15 // Height of jump
+}));
+
+const SideMissionOne: React.FC<SideMissionOneProps> = ({ onClose, onPointsAwarded, onMissionComplete, studentName, isCompleted }) => {
+  const [simState, setSimState] = useState<SimState>('intro');
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const requestRef = useRef<number>(0);
-  const shipXRef = useRef(40 + (50 / 5)); // Initial position
-  const velocityRef = useRef(0);
+  
+  const keysRef = useRef({ ArrowRight: false, ArrowLeft: false });
+  const physicsRef = useRef({
+    x: 100,
+    y: 100,
+    vx: 0,
+    vy: 0,
+    angle: 0,
+    angularVelocity: 0,
+    lastCheckpoint: 100,
+    isGrounded: true,
+  });
+  const itemsRef = useRef(Array(12).fill(false));
 
-  // Calculate acceleration for display
-  const acceleration = (force / mass).toFixed(1);
+  const [selectedQuantity, setSelectedQuantity] = useState<string | null>(null);
+  const [selectedUnit, setSelectedUnit] = useState<string | null>(null);
+  const [matchedPairs, setMatchedPairs] = useState<string[]>([]);
 
-  // --- Drawing Logic ---
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowRight') keysRef.current.ArrowRight = true;
+      if (e.key === 'ArrowLeft') keysRef.current.ArrowLeft = true;
+    };
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowRight') keysRef.current.ArrowRight = false;
+      if (e.key === 'ArrowLeft') keysRef.current.ArrowLeft = false;
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, []);
+
+  const getBaseTerrain = (x: number) => {
+    return Math.sin(x * 0.002) * 50 + Math.sin(x * 0.005) * 30 + Math.sin(x * 0.015) * 15 + 250;
+  };
+
+  const getTerrainHeight = useCallback((x: number) => {
+    let y = getBaseTerrain(x);
+    
+    // Add jumps
+    for (const feature of terrainFeatures) {
+        if (feature.type === 'jump') {
+            const dist = x - feature.x;
+            if (dist > -40 && dist < 0) {
+                // Ramp up
+                y -= (dist + 40) * (feature.size / 40);
+            } else if (dist >= 0 && dist < 10) {
+                // Drop off
+                y -= feature.size;
+            }
+        }
+    }
+    return y;
+  }, [terrainFeatures]);
+
+  const stuckTimerRef = useRef(0);
+
+  const [terrainFeatures, setTerrainFeatures] = useState(TERRAIN_FEATURES);
+
+  const handleRestart = useCallback(() => {
+      physicsRef.current.x = physicsRef.current.lastCheckpoint;
+      physicsRef.current.y = 100; // Drop from sky
+      physicsRef.current.vx = 0;
+      physicsRef.current.vy = 0;
+      physicsRef.current.angle = 0;
+      physicsRef.current.angularVelocity = 0;
+      physicsRef.current.isGrounded = false;
+      stuckTimerRef.current = 0;
+      setSimState('driving');
+  }, []);
+
+  const handleRestartFromBeginning = useCallback(() => {
+      physicsRef.current.x = 100;
+      physicsRef.current.lastCheckpoint = 100;
+      physicsRef.current.y = 100; // Drop from sky
+      physicsRef.current.vx = 0;
+      physicsRef.current.vy = 0;
+      physicsRef.current.angle = 0;
+      physicsRef.current.angularVelocity = 0;
+      physicsRef.current.isGrounded = false;
+      stuckTimerRef.current = 0;
+      // Reset items
+      itemsRef.current = Array(12).fill(false);
+      
+      // Regenerate terrain features
+      setTerrainFeatures(Array.from({ length: 20 }).map((_, i) => ({
+          x: 800 + i * 300 + Math.random() * 100,
+          type: 'jump',
+          size: 15 + Math.random() * 15
+      })));
+      
+      setSimState('driving');
+  }, []);
+
   const drawScene = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    const w = canvas.width;
+    const h = canvas.height;
+    const p = physicsRef.current;
+    const roverScreenX = 200;
+
     // Clear
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    const groundY = canvas.height - 40;
-    
-    // Draw Stars (Static Background)
-    ctx.fillStyle = "white";
-    for(let i=0; i<20; i++) ctx.fillRect((i*57)%canvas.width, (i*23)%canvas.height, 1, 1);
+    ctx.clearRect(0, 0, w, h);
 
-    // Determine Spring End X
-    // In 'ready' state, spring connects to ship.
-    // In 'flying' or 'finished' state, spring snaps back to rest position (e.g. 60).
-    const springRestX = 60;
-    const springEndX = simState === 'ready' ? shipXRef.current : springRestX;
+    // Sky
+    const skyGrad = ctx.createLinearGradient(0, 0, 0, h);
+    skyGrad.addColorStop(0, "#e8a37b");
+    skyGrad.addColorStop(1, "#c26b47");
+    ctx.fillStyle = skyGrad;
+    ctx.fillRect(0, 0, w, h);
 
-    // Draw Spring
-    ctx.strokeStyle = "#ff8c00";
-    ctx.lineWidth = 3;
+    // Sun
+    ctx.fillStyle = "rgba(255, 240, 200, 0.8)";
     ctx.beginPath();
-    ctx.moveTo(10, groundY - 20);
-    // Draw coiled spring segments
-    const segments = 12;
-    for(let i=0; i<=segments; i++) {
-        const x = 10 + i*((springEndX-10)/segments);
-        const y = groundY - 20 + (i%2===0 ? 10 : -10);
-        ctx.lineTo(x, y);
-    }
-    ctx.stroke();
-
-    // Draw Ship
-    ctx.save();
-    ctx.translate(shipXRef.current, groundY - 20);
-    ctx.fillStyle = "#00f2ff";
-    ctx.beginPath();
-    ctx.moveTo(0, -15); 
-    ctx.lineTo(50, 0); 
-    ctx.lineTo(0, 15); 
+    ctx.arc(w * 0.7, h * 0.3, 40, 0, Math.PI * 2);
     ctx.fill();
 
-    // Engine Flame (only when flying)
-    if(simState === 'flying' && shipXRef.current < canvas.width - 100) {
-        ctx.fillStyle = "orange";
-        ctx.beginPath(); 
-        ctx.moveTo(-10, -5); 
-        ctx.lineTo(-25 + Math.random()*5, 0); 
-        ctx.lineTo(-10, 5); 
-        ctx.fill();
+    // Mountains (Parallax)
+    ctx.fillStyle = "#a84c32";
+    ctx.beginPath();
+    ctx.moveTo(0, h);
+    for (let x = 0; x <= w; x += 20) {
+      const y = Math.sin((x + p.x * 0.2) * 0.003) * 50 + 150;
+      ctx.lineTo(x, y);
     }
-    ctx.restore();
-  }, [simState]);
+    ctx.lineTo(w, h);
+    ctx.fill();
 
-  // --- Effect: Handle Slider Changes in Ready State ---
-  useEffect(() => {
-      if (simState === 'ready') {
-          // Calculate initial compression visual
-          // More force = more compression? Or just visual representation.
-          // Let's make the ship start further out if force is higher to simulate "pulling back"?
-          // Actually, usually you pull back to increase force.
-          // Let's say rest is 60. Pulling back to 20 increases force.
-          // But to keep it simple visually matching the original logic:
-          // The previous code did: 40 + (force / 3).
-          shipXRef.current = 40 + (force / 5); 
-          drawScene();
+    // Terrain
+    ctx.fillStyle = "#8a331c";
+    ctx.beginPath();
+    ctx.moveTo(0, h);
+    for (let x = 0; x <= w + 20; x += 5) {
+      const worldX = x + p.x - roverScreenX;
+      ctx.lineTo(x, getTerrainHeight(worldX));
+    }
+    ctx.lineTo(w, h);
+    ctx.fill();
+
+    // Checkpoints
+    const checkpoints = [2000, 4000, 6000];
+    checkpoints.forEach(cp => {
+        const screenX = cp - p.x + roverScreenX;
+        if (screenX > -50 && screenX < w + 50) {
+            const cpY = getTerrainHeight(cp);
+            ctx.strokeStyle = "rgba(0, 255, 0, 0.5)";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(screenX, cpY);
+            ctx.lineTo(screenX, cpY - 100);
+            ctx.stroke();
+            ctx.fillStyle = "#00ff00";
+            ctx.font = "12px orbitron";
+            ctx.textAlign = "center";
+            ctx.fillText(cp === 6000 ? "CÉL" : "CHECKPOINT", screenX, cpY - 110);
+        }
+    });
+
+    // Underground items
+    ctx.font = "20px orbitron";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+
+    for (let i = 0; i < 12; i++) {
+      if (itemsRef.current[i]) continue;
+      const itemX = 500 + i * 450;
+      const screenX = itemX - p.x + roverScreenX;
+      
+      if (screenX > -50 && screenX < w + 50) {
+        const itemY = getBaseTerrain(itemX) + 80; // Underground
+        
+        ctx.fillStyle = "#00f2ff";
+        ctx.fillText("?", screenX, itemY);
+        ctx.strokeStyle = "#00f2ff";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(screenX, itemY, 20, 0, Math.PI * 2);
+        ctx.stroke();
       }
-  }, [force, mass, simState, drawScene]);
-
-  // --- Animation Loop ---
-  const animate = useCallback(() => {
-    if (simState !== 'flying') return;
-
-    shipXRef.current += velocityRef.current;
-    velocityRef.current *= 0.985; // Friction
-
-    // Boundaries check
-    if (velocityRef.current > 0.1 && shipXRef.current < (canvasRef.current?.width || 800)) {
-        drawScene();
-        requestRef.current = requestAnimationFrame(animate);
-    } else {
-        // Stop condition
-        setSimState('finished');
-        const finalDist = Math.round((force / mass) * 15); // Simulated distance calc
-        setDistance(finalDist);
-        setHistory(prev => [...prev, finalDist]);
-        drawScene(); // Final draw
     }
-  }, [simState, force, mass, drawScene]);
 
-  // Start Animation Effect
-  useEffect(() => {
-    if (simState === 'flying') {
-      // Initialize flight parameters
-      velocityRef.current = (force / mass) * 0.4;
-      requestRef.current = requestAnimationFrame(animate);
-    } 
-    return () => {
-      if (requestRef.current) cancelAnimationFrame(requestRef.current);
+    // Draw Rover
+    ctx.save();
+    ctx.translate(roverScreenX, p.y - 20);
+    ctx.rotate(p.angle);
+
+    // Draw scanner funnel
+    const scanGrad = ctx.createLinearGradient(0, 0, 0, 150);
+    scanGrad.addColorStop(0, "rgba(0, 242, 255, 0.5)");
+    scanGrad.addColorStop(1, "rgba(0, 242, 255, 0)");
+    ctx.fillStyle = scanGrad;
+    ctx.beginPath();
+    ctx.moveTo(0, 10);
+    ctx.lineTo(-80, 150);
+    ctx.lineTo(80, 150);
+    ctx.fill();
+
+    // Stylized Rover (Scaled up ~1.5x)
+    ctx.fillStyle = "#e0e0e0";
+    ctx.fillRect(-35, -20, 70, 20); // Body
+    
+    ctx.fillStyle = "#333";
+    ctx.fillRect(-20, -28, 15, 8); // Solar panel
+    
+    ctx.strokeStyle = "#aaa";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(20, -20);
+    ctx.lineTo(28, -40);
+    ctx.stroke();
+    ctx.fillStyle = "#00f2ff"; // Camera eye
+    ctx.beginPath();
+    ctx.arc(28, -40, 4, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Wheels
+    ctx.fillStyle = "#222";
+    const drawWheel = (wx: number) => {
+      ctx.save();
+      ctx.translate(wx, 5);
+      ctx.rotate(p.x * 0.05);
+      ctx.beginPath();
+      ctx.arc(0, 0, 15, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = "#888";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(-15, 0); ctx.lineTo(15, 0);
+      ctx.moveTo(0, -15); ctx.lineTo(0, 15);
+      ctx.stroke();
+      ctx.restore();
     };
-  }, [simState, animate, force, mass]);
 
-  // Initial Draw
+    drawWheel(-30);
+    drawWheel(0);
+    drawWheel(30);
+
+    ctx.restore();
+
+    // Progress
+    const collectedCount = itemsRef.current.filter(Boolean).length;
+    ctx.fillStyle = "rgba(0,0,0,0.5)";
+    ctx.fillRect(10, 10, 200, 30);
+    ctx.fillStyle = "#00f2ff";
+    ctx.font = "14px mono";
+    ctx.textAlign = "left";
+    ctx.fillText(`ADATOK: ${collectedCount} / 12`, 20, 30);
+
+  }, [getTerrainHeight]);
+
+  const animate = useCallback(() => {
+    if (simState === 'driving') {
+      const p = physicsRef.current;
+      const keys = keysRef.current;
+      
+      let input = 0;
+      if (keys.ArrowRight) input = 1;
+      if (keys.ArrowLeft) input = -1;
+
+      // Gravity
+      p.vy += 0.4;
+
+      // Acceleration
+      if (p.isGrounded) {
+          p.vx += input * 0.5;
+          p.vx *= 0.95; // Ground friction
+      } else {
+          p.vx *= 0.99; // Air resistance
+          // Allow some mid-air rotation control
+          p.angularVelocity += input * 0.005;
+      }
+
+      p.x += p.vx;
+      p.y += p.vy;
+
+      // Prevent going backwards past start
+      if (p.x < 100) {
+          p.x = 100;
+          p.vx = 0;
+      }
+
+      // Terrain Collision
+      const terrainY = getTerrainHeight(p.x);
+
+      // Ground collision
+      if (p.y >= terrainY) {
+          p.y = terrainY;
+          p.vy = 0;
+          p.isGrounded = true;
+          
+          // Match angle to terrain when grounded
+          const nextY = getTerrainHeight(p.x + 5);
+          const terrainAngle = Math.atan2(nextY - terrainY, 5);
+          
+          let angleDiff = terrainAngle - p.angle;
+          while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+          while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+
+          p.angularVelocity += angleDiff * 0.1;
+          p.angularVelocity *= 0.8; // Dampen rotation
+          
+          // Gravity effect on slopes
+          const slope = (nextY - getTerrainHeight(p.x - 5)) / 10;
+          p.vx -= slope * 0.5;
+      } else if (p.y < terrainY - 5) {
+          p.isGrounded = false;
+      }
+
+      p.angle += p.angularVelocity;
+
+      // Check if stuck
+      if (Math.abs(p.vx) < 0.5 && input !== 0 && p.isGrounded) {
+          stuckTimerRef.current++;
+          if (stuckTimerRef.current > 60) { // 1 second of being stuck
+              handleRestart();
+              return;
+          }
+      } else {
+          stuckTimerRef.current = 0;
+      }
+
+      // Crash condition (flipped over)
+      if (Math.abs(p.angle) > Math.PI * 0.6 && p.isGrounded) {
+          handleRestart();
+          return;
+      }
+
+      // Checkpoints
+      if (p.x > 2000 && p.lastCheckpoint < 2000) p.lastCheckpoint = 2000;
+      if (p.x > 4000 && p.lastCheckpoint < 4000) p.lastCheckpoint = 4000;
+
+      // Items collection
+      for (let i = 0; i < 12; i++) {
+        if (!itemsRef.current[i]) {
+            const itemX = 500 + i * 450;
+            if (Math.abs(p.x - itemX) < 60) {
+                itemsRef.current[i] = true;
+            }
+        }
+      }
+
+      // End of track
+      if (p.x > 6000) {
+          const collectedCount = itemsRef.current.filter(Boolean).length;
+          if (collectedCount >= 12) {
+              setSimState('matching');
+          } else {
+              p.vx = -5;
+              p.x = 5990;
+          }
+      }
+
+      drawScene();
+      
+      if (simState === 'driving') {
+         requestRef.current = requestAnimationFrame(animate);
+      }
+    }
+  }, [simState, drawScene, getTerrainHeight, handleRestart]);
+
+  useEffect(() => {
+    if (simState === 'driving') {
+      requestRef.current = requestAnimationFrame(animate);
+    } else if (simState === 'intro' || simState === 'crashed') {
+      drawScene();
+    }
+    return () => cancelAnimationFrame(requestRef.current);
+  }, [simState, animate, drawScene]);
+
   useEffect(() => {
     const canvas = canvasRef.current;
     if (canvas) {
         canvas.width = canvas.parentElement?.offsetWidth || 800;
-        canvas.height = 350;
+        canvas.height = 400;
+        
+        // Initial setup
+        physicsRef.current.y = getTerrainHeight(physicsRef.current.x);
         drawScene();
     }
-  }, [drawScene]);
+  }, [drawScene, getTerrainHeight]);
 
-  const handleLaunchToggle = () => {
-    if (simState === 'ready') {
-        setSimState('flying');
-    } else if (simState === 'finished') {
-        // Reset Logic
-        setSimState('ready');
-        setDistance(0);
-        // shipXRef will be reset by the useEffect depending on 'ready' state and force
-    }
+  const handleMatch = (qId: string, uId: string) => {
+     const q = QUANTITIES.find(x => x.id === qId);
+     if (q && q.match === uId) {
+         const newMatched = [...matchedPairs, qId];
+         setMatchedPairs(newMatched);
+         setSelectedQuantity(null);
+         setSelectedUnit(null);
+         
+         if (newMatched.length === QUANTITIES.length) {
+             setTimeout(() => {
+                 setSimState('completed');
+                 const pts = 10;
+                 onPointsAwarded(pts);
+                 onMissionComplete("sm1_physics_quiz", pts);
+             }, 1000);
+         }
+     } else {
+         setSelectedQuantity(null);
+         setSelectedUnit(null);
+     }
   };
 
-  // --- Quiz Logic ---
-  const handleQuizOptionClick = (qIndex: number, aIndex: number) => {
-    if (quizResult?.success) return; // Lock if already succeeded
-    setAnswers(prev => ({ ...prev, [qIndex]: aIndex }));
-  };
-
-  const checkQuiz = async () => {
-    let score = 0;
-    QUIZ_DATA.forEach((d, i) => { if(answers[i] === d.c) score++; });
-    
-    const isSuccess = score === QUIZ_DATA.length;
-    
-    setQuizResult({
-        score,
-        text: `DIAGNÓZIS: ${score} / ${QUIZ_DATA.length} adat helyes.`,
-        success: isSuccess
-    });
-
-    if (isSuccess) {
-        // Send points
-        try {
-            const missionId = "sm1_physics_quiz";
-            const newTotal = await submitMissionProgress(studentName, 10, missionId);
-            onPointsAwarded(newTotal);
-            onMissionComplete(missionId, newTotal);
-        } catch (e) {
-            console.error("Failed to send points", e);
-        }
-    }
-  };
+  useEffect(() => {
+      if (selectedQuantity && selectedUnit) {
+          handleMatch(selectedQuantity, selectedUnit);
+      }
+  }, [selectedQuantity, selectedUnit]);
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-[#0a0b10] overflow-y-auto">
-      {/* Header */}
       <div className="sticky top-0 z-40 bg-black/90 backdrop-blur border-b border-neon/30 p-4 flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-orbitron text-neon tracking-widest">S.M. 01 // IONRUGÓS HIPERTÉR</h2>
-          <div className="text-xs font-mono text-gray-400">FIZIKAI SZIMULÁCIÓS MODUL</div>
+          <h2 className="text-2xl font-orbitron text-neon tracking-widest">OP-01 // RONCSDERBI -&gt; FIZIKAI MENNYISÉGEK</h2>
+          <div className="text-xs font-mono text-gray-400">FELSZÍNI SZKENNER ÉS ADATELEMZŐ</div>
         </div>
         <button 
             onClick={onClose}
@@ -212,167 +473,156 @@ const SideMissionOne: React.FC<SideMissionOneProps> = ({ onClose, onPointsAwarde
         </button>
       </div>
 
-      <div className="container mx-auto max-w-5xl p-6 space-y-8 pb-20">
+      <div className="container mx-auto max-w-5xl p-6 space-y-8 pb-20 relative">
         
-        {/* Simulation Viewport */}
-        <div className="w-full h-[350px] bg-black border-2 border-gray-800 rounded relative shadow-[0_0_30px_rgba(0,0,0,0.5)]">
-            <canvas ref={canvasRef} className="w-full h-full block" />
-            <div className="absolute top-4 right-4 font-mono text-neon text-xs bg-black/50 p-2 rounded border border-neon/20">
-                LIVE FEED
+        {isCompleted && simState === 'intro' && (
+            <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm rounded-xl">
+                <div className="bg-green-900/80 border-2 border-green-500 p-8 rounded-xl text-center shadow-[0_0_50px_rgba(34,197,94,0.5)]">
+                    <div className="text-6xl mb-4">✅</div>
+                    <h2 className="text-3xl font-orbitron text-green-400 font-bold tracking-widest mb-2">KÜLDETÉS TELJESÍTVE</h2>
+                    <p className="text-green-200 font-mono">Az adatok már a rendszerben vannak.</p>
+                </div>
             </div>
-        </div>
+        )}
 
-        {/* Controls */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-white/5 p-6 rounded-xl border border-white/10">
-            <div className="space-y-4">
-                <div className="flex justify-between font-mono text-neon font-bold">
-                    <label>RUGÓERŐ (F)</label>
-                    <span>{force} N</span>
-                </div>
-                <input 
-                    type="range" 
-                    min="20" max="250" 
-                    value={force} 
-                    onChange={(e) => setForce(Number(e.target.value))}
-                    disabled={simState !== 'ready'}
-                    className={`w-full accent-alert cursor-pointer h-2 bg-gray-700 rounded-lg appearance-none ${simState !== 'ready' ? 'opacity-50' : ''}`}
-                />
+        {simState === 'completed' && (
+            <div className="bg-green-900/20 border border-green-500 p-8 rounded-xl text-center animate-fadeIn">
+                <div className="text-6xl mb-4">🎉</div>
+                <h2 className="text-3xl font-orbitron text-green-400 font-bold tracking-widest mb-2">ADATELEMZÉS SIKERES</h2>
+                <p className="text-gray-300 font-mono">Minden fizikai mennyiség és mértékegység párosítva. 10 XP jóváírva.</p>
+                <button onClick={onClose} className="mt-6 px-8 py-3 bg-neon text-black font-bold font-orbitron rounded hover:scale-105 transition-transform">
+                    VISSZA A RADARHOZ
+                </button>
             </div>
-            <div className="space-y-4">
-                <div className="flex justify-between font-mono text-neon font-bold">
-                    <label>ŰRHAJÓ TÖMEG (m)</label>
-                    <span>{mass.toFixed(1)} kg</span>
-                </div>
-                <input 
-                    type="range" 
-                    min="0.5" max="8.0" step="0.5"
-                    value={mass} 
-                    onChange={(e) => setMass(Number(e.target.value))}
-                    disabled={simState !== 'ready'}
-                    className={`w-full accent-alert cursor-pointer h-2 bg-gray-700 rounded-lg appearance-none ${simState !== 'ready' ? 'opacity-50' : ''}`}
-                />
-            </div>
-            <button 
-                onClick={handleLaunchToggle}
-                disabled={simState === 'flying'}
-                className={`col-span-full py-4 font-orbitron font-bold text-lg tracking-widest uppercase transition-all
-                    ${simState === 'flying' 
-                        ? 'bg-gray-700 text-gray-500 cursor-not-allowed' 
-                        : simState === 'finished'
-                          ? 'bg-blue-600 text-white hover:bg-blue-500' // Reset Button Style
-                          : 'bg-alert text-black hover:bg-neon hover:shadow-[0_0_20px_#00f2ff]' // Launch Button Style
-                    }
-                `}
-            >
-                {simState === 'flying' ? 'FOLYAMATBAN...' : simState === 'finished' ? 'VISSZAÁLLÍTÁS (RESET)' : 'LÖKET INDÍTÁSA'}
-            </button>
-        </div>
+        )}
 
-        {/* Telemetry Panel */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="md:col-span-1 bg-black p-6 border-l-4 border-alert font-mono">
-                <h4 className="text-alert font-bold mb-4 tracking-wider">TELEMETRIA</h4>
-                <div className="space-y-2 text-sm">
-                    <p className="flex justify-between">
-                        <span className="text-gray-400">Gyorsulás (a):</span>
-                        <span className="text-white">{acceleration} m/s²</span>
-                    </p>
-                    <p className="flex justify-between">
-                        <span className="text-gray-400">Távolság (s):</span>
-                        <span className="text-white">{distance} m</span>
-                    </p>
-                    <p className="flex justify-between border-t border-gray-800 pt-2 mt-2">
-                        <span className="text-gray-400">Státusz:</span>
-                        <span className={simState === 'flying' ? "text-neon animate-pulse" : "text-gray-500"}>
-                            {simState === 'flying' ? "REPÜLÉS" : simState === 'finished' ? "LEÁLLT" : "KÉSZENLÉT"}
-                        </span>
-                    </p>
-                </div>
-            </div>
-            
-            {/* Simple History Chart (SVG) */}
-            <div className="md:col-span-2 bg-white/5 rounded-lg p-4 h-48 relative border border-white/10 flex items-end gap-1">
-                {history.length === 0 && (
-                    <div className="absolute inset-0 flex items-center justify-center text-gray-600 font-mono text-xs">
-                        NINCS ADAT
+        {(simState === 'intro' || simState === 'driving' || simState === 'crashed') && (
+            <div className="w-full h-[400px] bg-black border-2 border-gray-800 rounded relative shadow-[0_0_30px_rgba(0,0,0,0.5)] overflow-hidden select-none">
+                <canvas ref={canvasRef} className="w-full h-full block" />
+                
+                {simState === 'intro' && !isCompleted && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm z-20">
+                        <h3 className="text-2xl font-orbitron text-neon mb-4">FELSZÍNI SZKENNELÉS</h3>
+                        <p className="text-gray-300 font-mono mb-8 max-w-lg text-center">
+                            Irányítsd a marsjárót a nyilakkal (vagy a gombokkal)! Vigyázz, a terep egyenetlen, könnyen felborulhatsz!
+                            Gyűjtsd be mind a 12 adatot a felszín alól.
+                        </p>
+                        <button 
+                            onClick={() => setSimState('driving')}
+                            className="px-8 py-4 bg-alert text-black font-orbitron font-bold text-xl rounded hover:bg-orange-400 hover:shadow-[0_0_20px_rgba(255,140,0,0.6)] transition-all"
+                        >
+                            SZKENNER INDÍTÁSA
+                        </button>
                     </div>
                 )}
-                {history.map((val, idx) => {
-                    // Simple normalization for visualization max 500m
-                    const heightPct = Math.min((val / 500) * 100, 100); 
-                    return (
-                        <div key={idx} className="flex-1 flex flex-col justify-end items-center group relative h-full">
-                            <div 
-                                style={{ height: `${heightPct}%` }} 
-                                className="w-full bg-neon/50 border-t border-neon hover:bg-neon transition-all"
-                            ></div>
-                            <div className="text-[10px] text-gray-500 mt-1">{idx+1}</div>
-                            {/* Tooltip */}
-                            <div className="absolute bottom-full mb-1 bg-black text-neon text-xs p-1 rounded opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-10">
-                                {val} m
-                            </div>
-                        </div>
-                    );
-                })}
-            </div>
-        </div>
 
-        {/* Quiz Section */}
-        <div className="bg-neon/5 border border-dashed border-neon/50 p-6 rounded-xl">
-             <div className="flex items-center gap-3 mb-6">
-                <span className="text-2xl">🛰️</span>
-                <h3 className="text-xl font-orbitron text-alert">KÜLDETÉS-KIÉRTÉKELŐ</h3>
-             </div>
-
-             <div className="space-y-6">
-                {QUIZ_DATA.map((item, qIdx) => (
-                    <div key={qIdx} className="space-y-2">
-                        <p className="font-bold text-white text-sm md:text-base">
-                            {qIdx+1}. {item.q}
-                        </p>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                            {item.a.map((opt, oIdx) => (
-                                <button
-                                    key={oIdx}
-                                    onClick={() => handleQuizOptionClick(qIdx, oIdx)}
-                                    disabled={quizResult?.success}
-                                    className={`
-                                        text-xs p-3 text-left border transition-all rounded
-                                        ${answers[qIdx] === oIdx 
-                                            ? 'bg-neon text-black border-neon font-bold' 
-                                            : 'bg-[#1c222d] text-gray-300 border-transparent hover:border-neon'
-                                        }
-                                    `}
-                                >
-                                    {opt}
-                                </button>
-                            ))}
-                        </div>
+                {simState === 'crashed' && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm z-20">
+                        <h3 className="text-4xl font-orbitron text-red-500 mb-4 animate-pulse">FELBORULTÁL!</h3>
+                        <p className="text-gray-300 font-mono mb-8">A marsjáró egyensúlya felborult. Próbáld újra a legutóbbi ellenőrzőponttól.</p>
+                        <button 
+                            onClick={handleRestart}
+                            className="px-8 py-4 bg-alert text-black font-orbitron font-bold text-xl rounded hover:bg-orange-400 hover:shadow-[0_0_20px_rgba(255,140,0,0.6)] transition-all"
+                        >
+                            ÚJRAINDÍTÁS
+                        </button>
                     </div>
-                ))}
-             </div>
+                )}
 
-             <button 
-                onClick={checkQuiz}
-                disabled={Object.keys(answers).length < QUIZ_DATA.length || quizResult?.success}
-                className={`w-full mt-8 py-4 font-orbitron font-bold text-lg rounded transition-all
-                    ${quizResult?.success 
-                        ? 'bg-green-500 text-black cursor-default'
-                        : Object.keys(answers).length < QUIZ_DATA.length
-                            ? 'bg-gray-800 text-gray-500 cursor-not-allowed'
-                            : 'bg-neon text-black hover:shadow-[0_0_20px_#00f2ff]'
-                    }
-                `}
-             >
-                {quizResult?.success ? 'KÜLDETÉS TELJESÍTVE! (+10 PONT)' : 'KIÉRTÉKELÉS ÉS PONTKÜLDÉS'}
-             </button>
+                {simState === 'driving' && (
+                    <>
+                        <div className="absolute bottom-4 left-4 flex gap-4 z-10">
+                            <button 
+                                onPointerDown={() => keysRef.current.ArrowLeft = true}
+                                onPointerUp={() => keysRef.current.ArrowLeft = false}
+                                onPointerLeave={() => keysRef.current.ArrowLeft = false}
+                                className="w-16 h-16 bg-black/50 border border-neon rounded-full text-neon text-2xl flex items-center justify-center select-none active:bg-neon active:text-black"
+                            >
+                                &larr;
+                            </button>
+                            <button 
+                                onPointerDown={() => keysRef.current.ArrowRight = true}
+                                onPointerUp={() => keysRef.current.ArrowRight = false}
+                                onPointerLeave={() => keysRef.current.ArrowRight = false}
+                                className="w-16 h-16 bg-black/50 border border-neon rounded-full text-neon text-2xl flex items-center justify-center select-none active:bg-neon active:text-black"
+                            >
+                                &rarr;
+                            </button>
+                        </div>
+                        <div className="absolute bottom-4 right-4 flex gap-4 z-10">
+                            <button 
+                                onClick={handleRestart}
+                                className="px-4 py-2 bg-black/50 border border-neon text-neon font-mono text-sm rounded hover:bg-neon hover:text-black transition-colors"
+                            >
+                                VISSZA A CHECKPOINTHOZ
+                            </button>
+                            <button 
+                                onClick={handleRestartFromBeginning}
+                                className="px-4 py-2 bg-black/50 border border-alert text-alert font-mono text-sm rounded hover:bg-alert hover:text-black transition-colors"
+                            >
+                                ÚJRA AZ ELEJÉRŐL
+                            </button>
+                        </div>
+                    </>
+                )}
+            </div>
+        )}
 
-             {quizResult && (
-                 <div className={`mt-4 p-4 text-center font-mono font-bold border ${quizResult.success ? 'border-green-500 text-green-500 bg-green-500/10' : 'border-alert text-alert bg-alert/10'}`}>
-                     {quizResult.text}
-                 </div>
-             )}
-        </div>
+        {simState === 'matching' && (
+            <div className="bg-[#0f1115] border border-gray-800 p-8 rounded-xl animate-fadeIn">
+                <h3 className="text-2xl font-orbitron text-neon mb-2 text-center">ADATOK FELDOLGOZÁSA</h3>
+                <p className="text-gray-400 font-mono text-center mb-8">Párosítsd a fizikai mennyiségeket a megfelelő mértékegységekkel!</p>
+                
+                <div className="grid grid-cols-2 gap-12 max-w-4xl mx-auto">
+                    {/* Quantities */}
+                    <div className="space-y-4">
+                        <h4 className="text-lg font-orbitron text-white border-b border-gray-700 pb-2">MENNYISÉGEK</h4>
+                        {QUANTITIES.map(q => {
+                            const isMatched = matchedPairs.includes(q.id);
+                            const isSelected = selectedQuantity === q.id;
+                            return (
+                                <button
+                                    key={q.id}
+                                    disabled={isMatched}
+                                    onClick={() => setSelectedQuantity(isSelected ? null : q.id)}
+                                    className={`w-full p-4 text-left font-mono text-lg rounded border transition-all
+                                        ${isMatched ? 'bg-green-900/30 border-green-500/50 text-green-500 opacity-50 cursor-not-allowed' : 
+                                          isSelected ? 'bg-neon/20 border-neon text-neon shadow-[0_0_15px_rgba(0,242,255,0.3)]' : 
+                                          'bg-gray-900 border-gray-700 text-gray-300 hover:border-gray-500'}`}
+                                >
+                                    {q.label}
+                                </button>
+                            )
+                        })}
+                    </div>
+                    
+                    {/* Units */}
+                    <div className="space-y-4">
+                        <h4 className="text-lg font-orbitron text-white border-b border-gray-700 pb-2">MÉRTÉKEGYSÉGEK</h4>
+                        {SHUFFLED_UNITS.map(u => {
+                            const matchedQ = QUANTITIES.find(q => q.match === u.id);
+                            const isMatched = matchedQ ? matchedPairs.includes(matchedQ.id) : false;
+                            const isSelected = selectedUnit === u.id;
+                            
+                            return (
+                                <button
+                                    key={u.id}
+                                    disabled={isMatched}
+                                    onClick={() => setSelectedUnit(isSelected ? null : u.id)}
+                                    className={`w-full p-4 text-left font-mono text-lg rounded border transition-all
+                                        ${isMatched ? 'bg-green-900/30 border-green-500/50 text-green-500 opacity-50 cursor-not-allowed' : 
+                                          isSelected ? 'bg-alert/20 border-alert text-alert shadow-[0_0_15px_rgba(255,140,0,0.3)]' : 
+                                          'bg-gray-900 border-gray-700 text-gray-300 hover:border-gray-500'}`}
+                                >
+                                    {u.label}
+                                </button>
+                            )
+                        })}
+                    </div>
+                </div>
+            </div>
+        )}
+
       </div>
     </div>
   );

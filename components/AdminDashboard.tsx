@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { getAllStudents, submitMissionProgress, getAdminSheetLink } from '../services/api';
+import React, { useState, useEffect } from 'react';
+import { getAllStudents, submitMissionProgress, getAdminSheetLink, resetStudentProgress } from '../services/api';
 import { calculateLevel, getRankTitle } from '../constants';
-import { CharacterClass } from '../types';
+import { CharacterClass, StudentData } from '../types';
 
 interface AdminDashboardProps {
   onLogout: () => void;
@@ -10,16 +10,33 @@ interface AdminDashboardProps {
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
   // In a real app, this would fetch from the server. Here we reference the local mock data.
   // We use a state to trigger re-renders when we modify points locally.
-  const [students, setStudents] = useState(getAllStudents());
+  const [students, setStudents] = useState<StudentData[]>([]);
   const [loading, setLoading] = useState<string | null>(null);
+
+  useEffect(() => {
+    getAllStudents().then(setStudents);
+  }, []);
 
   const handleGivePoints = async (studentName: string, amount: number) => {
     setLoading(studentName);
     await submitMissionProgress(studentName, amount, 'admin_manual_grant');
     
     // Refresh local view
-    setStudents([...getAllStudents()]);
+    const updatedStudents = await getAllStudents();
+    setStudents(updatedStudents);
     setLoading(null);
+  };
+
+  const handleResetProgress = async (studentName: string) => {
+    if (window.confirm(`Biztosan nullázni szeretnéd ${studentName} minden eredményét és küldetését? Ez a művelet nem vonható vissza!`)) {
+      setLoading(studentName);
+      await resetStudentProgress(studentName);
+      
+      // Refresh local view
+      const updatedStudents = await getAllStudents();
+      setStudents(updatedStudents);
+      setLoading(null);
+    }
   };
 
   return (
@@ -67,7 +84,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
                     <div className="flex justify-between">
                         <span>ÁTLAG SZINT:</span>
                         <span className="text-white font-bold">
-                            {(students.reduce((acc, s) => acc + calculateLevel(s.totalPoints), 0) / students.length).toFixed(1)}
+                            {(students.length > 0 ? students.reduce((acc, s) => acc + calculateLevel(s.totalPoints), 0) / students.length : 0).toFixed(1)}
                         </span>
                     </div>
                     <div className="flex justify-between">
@@ -82,10 +99,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
             <div className="bg-black/40 border border-red-900/30 p-4 rounded-lg">
                 <h3 className="text-red-500 font-orbitron text-sm mb-2">NAPLÓ (LOG)</h3>
                 <div className="text-[10px] text-gray-500 font-mono space-y-1 h-32 overflow-hidden">
-                    <p>> Rendszer indítása...</p>
-                    <p>> Adatbázis kapcsolat: <span className="text-green-500">MOCK_MODE</span></p>
-                    <p>> Szinkronizálás a Google Szerverekkel...</p>
-                    <p>> <span className="text-yellow-500">FIGYELEM:</span> 3 új kitüntetés elérhető.</p>
+                    <p>{'>'} Rendszer indítása...</p>
+                    <p>{'>'} Adatbázis kapcsolat: <span className="text-green-500">MOCK_MODE</span></p>
+                    <p>{'>'} Szinkronizálás a Google Szerverekkel...</p>
+                    <p>{'>'} <span className="text-yellow-500">FIGYELEM:</span> 3 új kitüntetés elérhető.</p>
                 </div>
             </div>
         </div>
@@ -148,6 +165,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
                                         >
                                             {isLoading ? '...' : '+10 XP'}
                                         </button>
+                                        <button 
+                                            onClick={() => handleResetProgress(student.name)}
+                                            disabled={isLoading}
+                                            className="px-2 py-1 bg-red-900/20 hover:bg-red-500 hover:text-white border border-red-500/50 hover:border-red-500 rounded text-xs transition-all disabled:opacity-50 ml-2"
+                                            title="Haladás nullázása"
+                                        >
+                                            {isLoading ? '...' : 'RESET'}
+                                        </button>
                                     </td>
                                 </tr>
                             );
@@ -157,7 +182,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
             </div>
             {students.length === 0 && (
                 <div className="p-8 text-center text-gray-500">
-                    Nincs megjeleníthető adat.
+                    {loading === null && students.length === 0 ? "Betöltés..." : "Nincs megjeleníthető adat."}
                 </div>
             )}
         </div>

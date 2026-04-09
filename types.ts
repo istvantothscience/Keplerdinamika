@@ -6,30 +6,32 @@ export enum CharacterClass {
 
 export interface StudentScores {
   lessons: [number, number, number, number, number, number]; // 6 tanóra pontszámai
-  homework: number;
+  homework: [number, number, number, number, number, number]; // 6 házi feladat pontszámai (Updated to array)
   project: number;
   exam: number;
 }
 
 export interface StudentData {
   name: string;
+  email?: string;
   totalPoints: number;
-  scores: StudentScores; // Részletes pontszámok
+  scores: StudentScores;
   characterType: CharacterClass;
   level: number;
-  isAdmin?: boolean; // New flag for admin users
-  completedMissions?: string[]; // Track IDs of completed missions
+  isAdmin?: boolean;
+  completedMissions?: string[];
 }
 
 export interface Mission {
   id: string;
   title: string;
   description: string;
-  story: string; // Douglas Adams stílusú sztori
+  story: string;
   imageUrl: string;
   classroomLink: string;
   minPoints: number;
   completed?: boolean;
+  type?: 'main' | 'project' | 'exam'; // Added type to distinguish special nodes
 }
 
 export interface ChatMessage {

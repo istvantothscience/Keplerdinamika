@@ -1,19 +1,24 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { createChatSession } from '../services/geminiService';
+import { createChatSession, createCustomChatSession } from '../services/geminiService';
 import { submitMissionProgress } from '../services/api';
 import { ChatMessage } from '../types';
+import { FunctionDeclaration } from '@google/genai';
 
 interface TerminalChatProps {
   studentName: string;
   onPointsAwarded: (newTotal: number) => void;
+  systemInstruction?: string;
+  tools?: FunctionDeclaration[];
+  initialMessage?: string;
+  missionId?: string;
 }
 
-const TerminalChat: React.FC<TerminalChatProps> = ({ studentName, onPointsAwarded }) => {
+const TerminalChat: React.FC<TerminalChatProps> = ({ studentName, onPointsAwarded, systemInstruction, tools, initialMessage, missionId }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: 'init',
       role: 'system',
-      text: 'KEPLER-452B FEDÉLZETI SZÁMÍTÓGÉP ONLINE.\nSzemélyiség modul: Cinikus (HU).\nVárakozás a bemenetre...',
+      text: initialMessage || 'KEPLER-452B FEDÉLZETI SZÁMÍTÓGÉP ONLINE.\nVárakozás a bemenetre...',
       timestamp: Date.now()
     }
   ]);
@@ -46,7 +51,11 @@ const TerminalChat: React.FC<TerminalChatProps> = ({ studentName, onPointsAwarde
 
     try {
       if (!chatSessionRef.current) {
-        chatSessionRef.current = createChatSession();
+        if (systemInstruction) {
+          chatSessionRef.current = createCustomChatSession(systemInstruction, tools);
+        } else {
+          chatSessionRef.current = createChatSession();
+        }
       }
 
       // Send message to Gemini - Correct format for @google/genai SDK
@@ -62,7 +71,7 @@ const TerminalChat: React.FC<TerminalChatProps> = ({ studentName, onPointsAwarde
             const pts = args.points || 5;
             
             // Execute the tool
-            const newTotal = await submitMissionProgress(studentName, pts, 'chat_riddle');
+            const newTotal = await submitMissionProgress(studentName, pts, missionId || 'chat_riddle');
             
             // Update app state
             onPointsAwarded(newTotal);
@@ -146,7 +155,7 @@ const TerminalChat: React.FC<TerminalChatProps> = ({ studentName, onPointsAwarde
         ))}
         {isProcessing && (
           <div className="text-neon/50 text-[10px] animate-pulse ml-2">
-            > SZÁMÍTÁS FOLYAMATBAN...
+            {'>'} SZÁMÍTÁS FOLYAMATBAN...
           </div>
         )}
       </div>

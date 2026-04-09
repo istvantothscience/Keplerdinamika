@@ -20,7 +20,7 @@ Ha a kadét helyesen válaszol egy fizikai kihívásra, HASZNÁLJA a 'grantPoint
 `;
 
 // Define the tool for granting points
-const grantPointsTool: FunctionDeclaration = {
+export const grantPointsTool: FunctionDeclaration = {
   name: 'grantPoints',
   description: 'Jutalompontokat ad a kadétnak sikeres fizika válaszért.',
   parameters: {
@@ -64,4 +64,20 @@ export const createChatSession = () => {
       tools: [{ functionDeclarations: [grantPointsTool] }],
     }
   });
+};
+
+/**
+ * Creates a chat session with specific instructions and tools for a dedicated mission.
+ */
+export const createCustomChatSession = (systemInstruction: string, tools?: FunctionDeclaration[]) => {
+    if (!client) initializeGemini();
+    if (!client) throw new Error("API Key hiányzik. Ellenőrizze a konzolt.");
+  
+    return client.chats.create({
+      model: 'gemini-3-flash-preview',
+      config: {
+        systemInstruction: systemInstruction,
+        tools: tools ? [{ functionDeclarations: tools }] : undefined,
+      }
+    });
 };
