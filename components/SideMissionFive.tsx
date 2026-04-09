@@ -11,67 +11,55 @@ interface SideMissionFiveProps {
 
 const QUESTIONS = [
   {
-    q: "Mi a rugóerő kiszámításának képlete (Hooke-törvény)?",
-    options: ["F = m * a", "F = -D * x", "E = m * c^2", "W = F * s"],
+    q: "Mi a lendület (impulzus) jele és képlete?",
+    options: ["F = m * a", "p = m * v", "E = 1/2 * m * v^2", "W = F * s"],
     correct: 1
   },
   {
-    q: "Milyen energia raktározódik az összenyomott rugóban?",
-    options: ["Mozgási energia", "Gravitációs helyzeti energia", "Rugalmas helyzeti energia", "Belső energia"],
+    q: "Tökéletesen rugalmas ütközésnél mi marad meg a zárt rendszerben?",
+    options: ["Csak a lendület", "Csak a mozgási energia", "A lendület és a mozgási energia is", "Egyik sem"],
     correct: 2
   },
   {
-    q: "Mi történik a rugalmas energiával a rakéta kilövésekor?",
-    options: ["Hővé alakul", "Megsemmisül", "Mozgási energiává, majd gravitációs helyzeti energiává alakul", "Kémiai energiává alakul"],
+    q: "Ha két azonos tömegű golyó tökéletesen rugalmasan ütközik (az egyik állt), mi történik?",
+    options: ["Mindkettő megáll", "Sebességet cserélnek", "Összetapadnak", "Visszapattannak azonos sebességgel"],
+    correct: 1
+  },
+  {
+    q: "Mi történik a mozgási energiával rugalmatlan ütközés esetén?",
+    options: ["Növekszik", "Megmarad", "Egy része hővé vagy alakváltozássá alakul", "Teljesen eltűnik"],
     correct: 2
   },
   {
-    q: "Hogyan függ a rakéta maximális magassága a rugóállandótól (D), ha a többi adat változatlan?",
-    options: ["Egyenesen arányos vele", "Fordítottan arányos vele", "Négyzetesen arányos vele", "Nem függ tőle"],
+    q: "Ha egy nehéz golyó ütközik egy könnyű, álló golyónak rugalmasan, a könnyű golyó...",
+    options: ["Nagyobb sebességgel repül el, mint a nehéz golyó eredeti sebessége", "Ugyanolyan sebességgel repül el", "Lassabban repül el", "Helyben marad"],
     correct: 0
-  },
-  {
-    q: "Ha kétszeresére növeljük a rugó összenyomását (x), hogyan változik a raktározott energia?",
-    options: ["Kétszeresére nő", "Négyszeresére nő", "Felére csökken", "Nem változik"],
-    correct: 1
   }
 ];
 
 const SideMissionFive: React.FC<SideMissionFiveProps> = ({ onClose, onPointsAwarded, onMissionComplete, studentName, isCompleted }) => {
-  const [gameState, setGameState] = useState<'ready' | 'launching' | 'finished'>('ready');
+  const [gameState, setGameState] = useState<'ready' | 'running' | 'finished'>('ready');
+  
+  // Parameters
+  const [mass1, setMass1] = useState(1); // kg
+  const [vel1, setVel1] = useState(5); // m/s
+  const [mass2, setMass2] = useState(1); // kg
+  const [vel2, setVel2] = useState(0); // m/s (initially stationary)
+  
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const requestRef = useRef<number>(0);
+  
+  // Simulation state
+  const pos1Ref = useRef(100);
+  const pos2Ref = useRef(500);
+  const currentVel1Ref = useRef(0);
+  const currentVel2Ref = useRef(0);
+  const hasCollidedRef = useRef(false);
 
-  // Physics Parameters
-  const [springConstant, setSpringConstant] = useState(20000); // D (N/m)
-  const [compression, setCompression] = useState(1.5); // x (m)
-  const [mass, setMass] = useState(20); // m (kg)
-
-  const [history, setHistory] = useState<{attempt: number, height: number}[]>([]);
-
-  // Quiz State
+  // Quiz state
   const [answers, setAnswers] = useState<number[]>(Array(5).fill(-1));
   const [quizSubmitted, setQuizSubmitted] = useState(false);
   const [score, setScore] = useState(0);
-
-  // Refs
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const requestRef = useRef<number>(0);
-  const velocityYRef = useRef(0);
-  const altitudeRef = useRef(0);
-  const starsRef = useRef<{x: number, y: number, size: number, speed: number}[]>([]);
-
-  // Init stars
-  useEffect(() => {
-    const stars = [];
-    for(let i=0; i<100; i++) {
-        stars.push({
-            x: Math.random() * 800,
-            y: Math.random() * 400,
-            size: Math.random() * 2 + 0.5,
-            speed: Math.random() * 0.5 + 0.1
-        });
-    }
-    starsRef.current = stars;
-  }, []);
 
   const drawScene = useCallback(() => {
     const canvas = canvasRef.current;
@@ -83,174 +71,131 @@ const SideMissionFive: React.FC<SideMissionFiveProps> = ({ onClose, onPointsAwar
     const h = canvas.height;
 
     // Clear
-    ctx.fillStyle = '#050510';
+    ctx.clearRect(0, 0, w, h);
+    
+    // Background
+    ctx.fillStyle = '#0a0b10';
     ctx.fillRect(0, 0, w, h);
 
-    // Draw Stars
-    ctx.fillStyle = '#fff';
-    starsRef.current.forEach(star => {
+    // Track
+    const trackY = h / 2 + 30;
+    ctx.fillStyle = '#333';
+    ctx.fillRect(0, trackY, w, 10);
+    
+    // Draw Balls
+    const drawBall = (x: number, m: number, color: string, label: string, v: number) => {
+        const radius = 20 + Math.min(m * 2, 20); // Size based on mass
         ctx.beginPath();
-        ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+        ctx.arc(x, trackY - radius, radius, 0, Math.PI * 2);
+        ctx.fillStyle = color;
         ctx.fill();
-    });
-
-    const groundY = h - 40;
-
-    // Draw Ground
-    ctx.fillStyle = '#111';
-    ctx.fillRect(0, groundY, w, 40);
-    ctx.strokeStyle = '#00f2ff';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(0, groundY);
-    ctx.lineTo(w, groundY);
-    ctx.stroke();
-
-    const centerX = w / 2;
-
-    // Draw Ion Spring
-    let springHeight = 60;
-    if (gameState === 'ready') {
-        springHeight = 60 - (compression * 15); // Visual compression
-    } else if (gameState === 'launching') {
-        springHeight = 60; // Instantly uncompresses
-    } else {
-        springHeight = 60;
-    }
-
-    const springTopY = groundY - springHeight;
-
-    // Glowing spring effect
-    ctx.shadowColor = '#00f2ff';
-    ctx.shadowBlur = 15;
-    ctx.strokeStyle = '#00f2ff';
-    ctx.lineWidth = 4;
-    ctx.beginPath();
-    ctx.moveTo(centerX - 20, groundY);
-    ctx.lineTo(centerX + 20, groundY);
-
-    let currentY = groundY;
-    const zigzags = 8;
-    const stepY = springHeight / zigzags;
-    for (let i = 0; i < zigzags; i++) {
-        currentY -= stepY;
-        const dir = i % 2 === 0 ? 1 : -1;
-        ctx.lineTo(centerX + (dir * 20), currentY);
-    }
-    ctx.lineTo(centerX, springTopY);
-    ctx.stroke();
-    ctx.shadowBlur = 0;
-
-    // Draw Rocket
-    let rocketVisualY = springTopY;
-    if (gameState === 'launching' || gameState === 'finished') {
-        if (altitudeRef.current > 0) {
-            rocketVisualY = Math.max(50, springTopY - (altitudeRef.current * 2));
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        
+        ctx.fillStyle = '#fff';
+        ctx.font = '14px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText(label, x, trackY - radius + 5);
+        
+        // Velocity vector
+        if (Math.abs(v) > 0.1) {
+            ctx.beginPath();
+            ctx.moveTo(x, trackY - radius * 2 - 10);
+            ctx.lineTo(x + v * 10, trackY - radius * 2 - 10);
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 3;
+            ctx.stroke();
+            
+            // Arrow head
+            ctx.beginPath();
+            ctx.moveTo(x + v * 10, trackY - radius * 2 - 10);
+            ctx.lineTo(x + v * 10 - Math.sign(v) * 5, trackY - radius * 2 - 15);
+            ctx.lineTo(x + v * 10 - Math.sign(v) * 5, trackY - radius * 2 - 5);
+            ctx.fill();
         }
-    }
+    };
 
-    ctx.save();
-    ctx.translate(centerX, rocketVisualY);
+    drawBall(pos1Ref.current, mass1, '#00f2ff', 'm1', currentVel1Ref.current);
+    drawBall(pos2Ref.current, mass2, '#ff3366', 'm2', currentVel2Ref.current);
 
-    // Rocket Body
-    ctx.fillStyle = '#ddd';
-    ctx.beginPath();
-    ctx.moveTo(0, -40);
-    ctx.lineTo(15, 0);
-    ctx.lineTo(-15, 0);
-    ctx.closePath();
-    ctx.fill();
-
-    // Rocket Window
+    // Info
+    ctx.fillStyle = 'rgba(0,0,0,0.7)';
+    ctx.fillRect(10, 10, 200, 80);
     ctx.fillStyle = '#00f2ff';
-    ctx.beginPath();
-    ctx.arc(0, -15, 5, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Rocket Fins
-    ctx.fillStyle = '#ff3366';
-    ctx.beginPath();
-    ctx.moveTo(15, 0);
-    ctx.lineTo(25, 15);
-    ctx.lineTo(10, 5);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.moveTo(-15, 0);
-    ctx.lineTo(-25, 15);
-    ctx.lineTo(-10, 5);
-    ctx.fill();
-
-    // Flames
-    if (gameState === 'launching' && velocityYRef.current > 0) {
-        ctx.fillStyle = '#ff9900';
-        ctx.beginPath();
-        ctx.moveTo(-10, 0);
-        ctx.lineTo(10, 0);
-        ctx.lineTo(0, 20 + Math.random() * 20);
-        ctx.closePath();
-        ctx.fill();
-    }
-
-    ctx.restore();
-
-    // HUD: Altitude
-    ctx.fillStyle = '#00f2ff';
-    ctx.font = '20px monospace';
     ctx.textAlign = 'left';
-    ctx.fillText(`MAGASSÁG: ${Math.round(altitudeRef.current)} m`, 20, 40);
-    ctx.fillText(`SEBESSÉG: ${Math.round(velocityYRef.current)} m/s`, 20, 70);
+    ctx.fillText(`v1: ${currentVel1Ref.current.toFixed(2)} m/s`, 20, 30);
+    ctx.fillText(`p1: ${(mass1 * currentVel1Ref.current).toFixed(2)} kg*m/s`, 20, 50);
+    
+    ctx.fillStyle = '#ff3366';
+    ctx.fillText(`v2: ${currentVel2Ref.current.toFixed(2)} m/s`, 20, 70);
 
-  }, [gameState, compression]);
+  }, [mass1, mass2]);
 
   const loop = useCallback(() => {
-    if (gameState === 'launching') {
-        const dt = 0.015; // smooth visual dt
-        const g = 10;
-
-        velocityYRef.current -= g * dt;
-        altitudeRef.current += velocityYRef.current * dt;
-
-        // Move stars down to simulate upward movement
-        if (velocityYRef.current > 0) {
-            starsRef.current.forEach(star => {
-                star.y += velocityYRef.current * dt * 0.5;
-                if (star.y > 400) star.y = 0;
-            });
+    if (gameState === 'running') {
+        const dt = 0.05;
+        
+        pos1Ref.current += currentVel1Ref.current * dt * 20; // scale speed for visual
+        pos2Ref.current += currentVel2Ref.current * dt * 20;
+        
+        // Collision detection
+        const radius1 = 20 + Math.min(mass1 * 2, 20);
+        const radius2 = 20 + Math.min(mass2 * 2, 20);
+        
+        if (!hasCollidedRef.current && (pos2Ref.current - pos1Ref.current) <= (radius1 + radius2)) {
+            // Elastic collision 1D
+            // v1' = (v1(m1-m2) + 2*m2*v2) / (m1+m2)
+            // v2' = (v2(m2-m1) + 2*m1*v1) / (m1+m2)
+            const v1 = currentVel1Ref.current;
+            const v2 = currentVel2Ref.current;
+            
+            const newV1 = (v1 * (mass1 - mass2) + 2 * mass2 * v2) / (mass1 + mass2);
+            const newV2 = (v2 * (mass2 - mass1) + 2 * mass1 * v1) / (mass1 + mass2);
+            
+            currentVel1Ref.current = newV1;
+            currentVel2Ref.current = newV2;
+            hasCollidedRef.current = true;
+            
+            // Prevent sticking
+            pos1Ref.current = pos2Ref.current - (radius1 + radius2) - 1;
         }
-
-        if (velocityYRef.current <= 0) {
+        
+        // End condition
+        if (pos1Ref.current < 0 || pos1Ref.current > 800 || pos2Ref.current > 800) {
             setGameState('finished');
-            setHistory(prev => [...prev, { attempt: prev.length + 1, height: altitudeRef.current }]);
         }
     }
-
+    
     drawScene();
     requestRef.current = requestAnimationFrame(loop);
-  }, [gameState, drawScene]);
+  }, [gameState, drawScene, mass1, mass2]);
 
   useEffect(() => {
     requestRef.current = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(requestRef.current);
   }, [loop]);
 
-  const handleLaunch = () => {
-    if (gameState !== 'ready') return;
-
-    // Calculate initial velocity based on energy conservation
-    // 0.5 * k * x^2 = 0.5 * m * v^2
-    // v = sqrt((k * x^2) / m)
-    const vInitial = Math.sqrt((springConstant * Math.pow(compression, 2)) / mass);
-
-    velocityYRef.current = vInitial;
-    altitudeRef.current = 0;
-    setGameState('launching');
+  const handleStart = () => {
+      if (gameState !== 'ready') return;
+      
+      pos1Ref.current = 100;
+      pos2Ref.current = 500;
+      currentVel1Ref.current = vel1;
+      currentVel2Ref.current = vel2;
+      hasCollidedRef.current = false;
+      
+      setGameState('running');
   };
-
+  
   const handleReset = () => {
-    setGameState('ready');
-    altitudeRef.current = 0;
-    velocityYRef.current = 0;
-    drawScene();
+      setGameState('ready');
+      pos1Ref.current = 100;
+      pos2Ref.current = 500;
+      currentVel1Ref.current = vel1;
+      currentVel2Ref.current = vel2;
+      hasCollidedRef.current = false;
+      drawScene();
   };
 
   const handleQuizSubmit = async () => {
@@ -262,8 +207,8 @@ const SideMissionFive: React.FC<SideMissionFiveProps> = ({ onClose, onPointsAwar
       setQuizSubmitted(true);
 
       try {
-          const missionId = 'sm3_rocket';
-          const newTotal = await submitMissionProgress(studentName, currentScore, missionId); // 1 point per question = 5 max
+          const missionId = 'sm3_billiards';
+          const newTotal = await submitMissionProgress(studentName, currentScore * 2, missionId); // 2 points per question = 10 max
           onPointsAwarded(newTotal);
           if (currentScore === 5) {
               onMissionComplete(missionId, newTotal);
@@ -274,26 +219,30 @@ const SideMissionFive: React.FC<SideMissionFiveProps> = ({ onClose, onPointsAwar
   // Initial draw
   useEffect(() => {
       if (gameState === 'ready') {
+          currentVel1Ref.current = vel1;
+          currentVel2Ref.current = vel2;
           drawScene();
       }
-  }, [springConstant, compression, mass, gameState, drawScene]);
-
-  const maxHistoryHeight = Math.max(100, ...history.map(h => h.height));
+  }, [vel1, vel2, mass1, mass2, gameState, drawScene]);
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-[#0a0b10] overflow-y-auto">
       {/* Header */}
       <div className="sticky top-0 z-40 bg-black/90 backdrop-blur border-b border-neon/30 p-4 flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-orbitron text-neon tracking-widest">OP-03 // RUGÓS RAKÉTA</h2>
-          <div className="text-xs font-mono text-gray-400">ENERGIAMEGMARADÁS ÉS HOOKE-TÖRVÉNY</div>
+          <h2 className="text-2xl font-orbitron text-neon tracking-widest">OP-04 // NEWTON BILLIÁRD</h2>
+          <div className="text-xs font-mono text-gray-400">RUGALMAS ÜTKÖZÉSEK ÉS LENDÜLET</div>
         </div>
-        <button onClick={onClose} className="px-4 py-2 border border-red-500 text-red-500 hover:bg-red-500 hover:text-white transition-colors font-mono rounded font-bold">
+        <button 
+            onClick={onClose}
+            className="px-4 py-2 border border-red-500 text-red-500 hover:bg-red-500 hover:text-white transition-colors font-mono rounded"
+        >
             BEZÁRÁS [X]
         </button>
       </div>
 
-      <div className="container mx-auto max-w-6xl p-6 space-y-8 pb-20 relative">
+      <div className="container mx-auto max-w-5xl p-6 space-y-8 pb-20 relative">
+        
         {isCompleted && (
             <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm rounded-xl">
                 <div className="bg-green-900/80 border-2 border-green-500 p-8 rounded-xl text-center shadow-[0_0_50px_rgba(34,197,94,0.5)]">
@@ -304,72 +253,100 @@ const SideMissionFive: React.FC<SideMissionFiveProps> = ({ onClose, onPointsAwar
             </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Simulation Viewport */}
-            <div className="lg:col-span-2 w-full h-[400px] bg-black border-2 border-gray-800 rounded relative shadow-[0_0_30px_rgba(0,0,0,0.5)] overflow-hidden">
-                <canvas ref={canvasRef} width={800} height={400} className="w-full h-full block object-cover" />
-            </div>
-
-            {/* Controls & Graph */}
-            <div className="space-y-6 bg-white/5 p-6 rounded-xl border border-white/10 flex flex-col">
-                <h3 className="text-neon font-orbitron border-b border-gray-700 pb-2">PARAMÉTEREK</h3>
-
-                <div className="space-y-2">
-                    <div className="flex justify-between font-mono text-neon font-bold text-sm">
-                        <label>RUGÓÁLLANDÓ (D)</label>
-                        <span>{springConstant} N/m</span>
-                    </div>
-                    <input type="range" min="1000" max="50000" step="1000" value={springConstant} onChange={(e) => setSpringConstant(Number(e.target.value))} disabled={gameState === 'launching'} className="w-full accent-neon cursor-pointer h-2 bg-gray-700 rounded-lg appearance-none" />
-                </div>
-
-                <div className="space-y-2">
-                    <div className="flex justify-between font-mono text-neon font-bold text-sm">
-                        <label>ÖSSZENYOMÁS (x)</label>
-                        <span>{compression.toFixed(2)} m</span>
-                    </div>
-                    <input type="range" min="0.1" max="3.0" step="0.1" value={compression} onChange={(e) => setCompression(Number(e.target.value))} disabled={gameState === 'launching'} className="w-full accent-neon cursor-pointer h-2 bg-gray-700 rounded-lg appearance-none" />
-                </div>
-
-                <div className="space-y-2">
-                    <div className="flex justify-between font-mono text-neon font-bold text-sm">
-                        <label>RAKÉTA TÖMEGE (m)</label>
-                        <span>{mass} kg</span>
-                    </div>
-                    <input type="range" min="5" max="100" step="5" value={mass} onChange={(e) => setMass(Number(e.target.value))} disabled={gameState === 'launching'} className="w-full accent-neon cursor-pointer h-2 bg-gray-700 rounded-lg appearance-none" />
-                </div>
-
-                <div className="mt-4">
-                    {gameState === 'ready' || gameState === 'finished' ? (
-                        <button onClick={gameState === 'finished' ? handleReset : handleLaunch} className={`w-full font-orbitron font-bold py-3 rounded transition-transform shadow-lg ${gameState === 'finished' ? 'bg-gray-700 text-white hover:bg-gray-600' : 'bg-neon text-black hover:scale-105 shadow-[0_0_15px_rgba(0,242,255,0.5)]'}`}>
-                            {gameState === 'finished' ? 'ÚJRA' : 'KILÖVÉS'}
-                        </button>
-                    ) : (
-                        <button disabled className="w-full bg-gray-800 text-gray-500 font-orbitron font-bold py-3 rounded cursor-not-allowed">
-                            REPÜLÉS...
-                        </button>
-                    )}
-                </div>
-
-                {/* Graph */}
-                <div className="mt-auto pt-6 border-t border-gray-700">
-                    <h4 className="text-gray-400 font-mono text-xs mb-2">KILÖVÉSI ELŐZMÉNYEK (MAGASSÁG)</h4>
-                    <div className="h-32 flex items-end gap-2 border-b border-l border-gray-600 p-2 relative">
-                        {history.length === 0 && <div className="absolute inset-0 flex items-center justify-center text-gray-600 font-mono text-xs">Nincs adat</div>}
-                        {history.map((h, i) => (
-                            <div key={i} className="w-8 bg-neon/80 hover:bg-neon transition-all relative group flex-shrink-0" style={{ height: `${Math.max(5, (h.height / maxHistoryHeight) * 100)}%` }}>
-                                <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-[10px] text-white opacity-0 group-hover:opacity-100 transition-opacity bg-black px-1 rounded">
-                                    {Math.round(h.height)}m
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
+        {/* Simulation Viewport */}
+        <div className="w-full h-[300px] bg-black border-2 border-gray-800 rounded relative shadow-[0_0_30px_rgba(0,0,0,0.5)] overflow-hidden">
+            <canvas ref={canvasRef} width={800} height={300} className="w-full h-full block" />
+            <div className="absolute top-4 right-4 font-mono text-neon text-xs bg-black/50 p-2 rounded border border-neon/20">
+                LIVE FEED // COLLISION TRACK
             </div>
         </div>
 
+        {/* Controls */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-white/5 p-6 rounded-xl border border-white/10">
+            <div className="space-y-6">
+                <h3 className="text-neon font-orbitron border-b border-gray-700 pb-2">GOLYÓ 1 (KÉK)</h3>
+                <div className="space-y-2">
+                    <div className="flex justify-between font-mono text-neon font-bold text-sm">
+                        <label>TÖMEG (m1)</label>
+                        <span>{mass1} kg</span>
+                    </div>
+                    <input 
+                        type="range" min="1" max="10" step="1"
+                        value={mass1} 
+                        onChange={(e) => setMass1(Number(e.target.value))}
+                        disabled={gameState === 'running'}
+                        className="w-full accent-neon cursor-pointer h-2 bg-gray-700 rounded-lg appearance-none"
+                    />
+                </div>
+                
+                <div className="space-y-2">
+                    <div className="flex justify-between font-mono text-neon font-bold text-sm">
+                        <label>SEBESSÉG (v1)</label>
+                        <span>{vel1} m/s</span>
+                    </div>
+                    <input 
+                        type="range" min="1" max="15" step="1"
+                        value={vel1} 
+                        onChange={(e) => setVel1(Number(e.target.value))}
+                        disabled={gameState === 'running'}
+                        className="w-full accent-neon cursor-pointer h-2 bg-gray-700 rounded-lg appearance-none"
+                    />
+                </div>
+            </div>
+
+            <div className="space-y-6">
+                <h3 className="text-[#ff3366] font-orbitron border-b border-gray-700 pb-2">GOLYÓ 2 (PIROS)</h3>
+                <div className="space-y-2">
+                    <div className="flex justify-between font-mono text-[#ff3366] font-bold text-sm">
+                        <label>TÖMEG (m2)</label>
+                        <span>{mass2} kg</span>
+                    </div>
+                    <input 
+                        type="range" min="1" max="10" step="1"
+                        value={mass2} 
+                        onChange={(e) => setMass2(Number(e.target.value))}
+                        disabled={gameState === 'running'}
+                        className="w-full accent-[#ff3366] cursor-pointer h-2 bg-gray-700 rounded-lg appearance-none"
+                    />
+                </div>
+                
+                <div className="space-y-2">
+                    <div className="flex justify-between font-mono text-[#ff3366] font-bold text-sm">
+                        <label>SEBESSÉG (v2)</label>
+                        <span>{vel2} m/s (ÁLL)</span>
+                    </div>
+                    <input 
+                        type="range" min="0" max="0" step="1"
+                        value={vel2} 
+                        disabled
+                        className="w-full accent-[#ff3366] cursor-not-allowed h-2 bg-gray-800 rounded-lg appearance-none opacity-50"
+                    />
+                </div>
+
+                <div className="mt-6 flex gap-4 pt-4">
+                    {gameState === 'ready' || gameState === 'finished' ? (
+                        <button 
+                            onClick={gameState === 'finished' ? handleReset : handleStart}
+                            className={`flex-1 font-orbitron font-bold py-3 rounded transition-transform shadow-lg ${gameState === 'finished' ? 'bg-gray-700 text-white hover:bg-gray-600' : 'bg-alert text-black hover:scale-105 shadow-[0_0_15px_rgba(255,51,102,0.5)]'}`}
+                        >
+                            {gameState === 'finished' ? 'ÚJRA' : 'INDÍTÁS'}
+                        </button>
+                    ) : (
+                        <button 
+                            disabled
+                            className="flex-1 bg-gray-800 text-gray-500 font-orbitron font-bold py-3 rounded cursor-not-allowed"
+                        >
+                            SZIMULÁCIÓ...
+                        </button>
+                    )}
+                </div>
+            </div>
+        </div>
+        
         {/* Quiz Section */}
         <div className="bg-[#0f1115] border border-gray-800 p-6 rounded-xl mt-8">
             <h3 className="text-2xl font-orbitron text-neon mb-6 border-b border-gray-800 pb-4">ELMÉLETI TESZT</h3>
+            
             <div className="space-y-8">
                 {QUESTIONS.map((q, qIdx) => (
                     <div key={qIdx} className="space-y-3">
@@ -378,16 +355,36 @@ const SideMissionFive: React.FC<SideMissionFiveProps> = ({ onClose, onPointsAwar
                             {q.options.map((opt, oIdx) => {
                                 const isSelected = answers[qIdx] === oIdx;
                                 let btnClass = "p-3 text-left border rounded font-mono text-sm transition-colors ";
+                                
                                 if (quizSubmitted) {
-                                    if (oIdx === q.correct) btnClass += "bg-green-900/50 border-green-500 text-green-200";
-                                    else if (isSelected) btnClass += "bg-red-900/50 border-red-500 text-red-200";
-                                    else btnClass += "bg-gray-800 border-gray-700 text-gray-500";
+                                    if (oIdx === q.correct) {
+                                        btnClass += "bg-green-900/50 border-green-500 text-green-200";
+                                    } else if (isSelected) {
+                                        btnClass += "bg-red-900/50 border-red-500 text-red-200";
+                                    } else {
+                                        btnClass += "bg-gray-800 border-gray-700 text-gray-500";
+                                    }
                                 } else {
-                                    if (isSelected) btnClass += "bg-neon/20 border-neon text-neon";
-                                    else btnClass += "bg-gray-800 border-gray-700 text-gray-300 hover:border-gray-500";
+                                    if (isSelected) {
+                                        btnClass += "bg-neon/20 border-neon text-neon";
+                                    } else {
+                                        btnClass += "bg-gray-800 border-gray-700 text-gray-300 hover:border-gray-500";
+                                    }
                                 }
+
                                 return (
-                                    <button key={oIdx} onClick={() => { if (!quizSubmitted) { const newAnswers = [...answers]; newAnswers[qIdx] = oIdx; setAnswers(newAnswers); } }} disabled={quizSubmitted} className={btnClass}>
+                                    <button 
+                                        key={oIdx}
+                                        onClick={() => {
+                                            if (!quizSubmitted) {
+                                                const newAnswers = [...answers];
+                                                newAnswers[qIdx] = oIdx;
+                                                setAnswers(newAnswers);
+                                            }
+                                        }}
+                                        disabled={quizSubmitted}
+                                        className={btnClass}
+                                    >
                                         {opt}
                                     </button>
                                 );
@@ -400,23 +397,40 @@ const SideMissionFive: React.FC<SideMissionFiveProps> = ({ onClose, onPointsAwar
             <div className="mt-8 pt-6 border-t border-gray-800 flex flex-col md:flex-row items-center justify-between gap-4">
                 {quizSubmitted ? (
                     <div className="text-xl font-orbitron">
-                        EREDMÉNY: <span className={score === 5 ? "text-green-400" : "text-yellow-400"}>{score} / 5 PONT</span>
+                        EREDMÉNY: <span className={score === 5 ? "text-green-400" : "text-yellow-400"}>{score * 2} / 10 PONT</span>
                     </div>
                 ) : (
                     <div className="text-gray-400 font-mono text-sm">Válaszolj minden kérdésre az ellenőrzéshez!</div>
                 )}
+
                 <div className="flex gap-4 w-full md:w-auto">
                     {quizSubmitted && score < 5 && (
-                        <button onClick={() => { setQuizSubmitted(false); setAnswers(Array(5).fill(-1)); setScore(0); }} className="flex-1 md:flex-none px-6 py-3 bg-gray-700 text-white font-orbitron font-bold rounded hover:bg-gray-600 transition-colors">
+                        <button 
+                            onClick={() => {
+                                setQuizSubmitted(false);
+                                setAnswers(Array(5).fill(-1));
+                                setScore(0);
+                            }}
+                            className="flex-1 md:flex-none px-6 py-3 bg-gray-700 text-white font-orbitron font-bold rounded hover:bg-gray-600 transition-colors"
+                        >
                             ÚJRAÍRÁS
                         </button>
                     )}
-                    <button onClick={handleQuizSubmit} disabled={quizSubmitted || answers.includes(-1)} className={`flex-1 md:flex-none px-8 py-3 font-orbitron font-bold rounded transition-all ${quizSubmitted || answers.includes(-1) ? 'bg-gray-800 text-gray-600 cursor-not-allowed' : 'bg-neon text-black hover:scale-105 shadow-[0_0_15px_rgba(0,242,255,0.4)]'}`}>
+                    <button 
+                        onClick={handleQuizSubmit}
+                        disabled={quizSubmitted || answers.includes(-1)}
+                        className={`flex-1 md:flex-none px-8 py-3 font-orbitron font-bold rounded transition-all ${
+                            quizSubmitted || answers.includes(-1) 
+                            ? 'bg-gray-800 text-gray-600 cursor-not-allowed' 
+                            : 'bg-neon text-black hover:scale-105 shadow-[0_0_15px_rgba(0,242,255,0.4)]'
+                        }`}
+                    >
                         ELLENŐRZÉS
                     </button>
                 </div>
             </div>
         </div>
+
       </div>
     </div>
   );
