@@ -134,8 +134,8 @@ const App: React.FC = () => {
           missionKey = 'sm2_inertia';
       }
       else if (slotId === 3) {
-          // SLOT 3 -> ROCKET (SM5)
-          missionContentId = 5;
+          // SLOT 3 -> ROCKET (SM3)
+          missionContentId = 3;
           missionKey = 'sm3_rocket';
       }
       else if (slotId === 4) {
@@ -144,8 +144,8 @@ const App: React.FC = () => {
           missionKey = 'sm4_arcade_game';
       }
       else if (slotId === 5) {
-          // SLOT 5 -> BILLIARDS (SM3) - MOVED HERE
-          missionContentId = 3;
+          // SLOT 5 -> BILLIARDS (SM5)
+          missionContentId = 5;
           missionKey = 'sm3_billiards';
       }
       else if (slotId === 6) {
