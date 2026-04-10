@@ -77,42 +77,50 @@ const NewtonJeepMission: React.FC<NewtonJeepMissionProps> = ({ onClose, onMissio
       const spiderX = spiderOffsetRef.current;
       const spiderY = canvas.height / 2 + 30 + Math.sin(Date.now() / 100) * 10; // Pulsating/bobbing
 
-      // Draw Spider (Realistic)
+      // Draw Alien Spider (Realistic, Glowing, 7 legs)
       ctx.save();
       ctx.translate(spiderX, spiderY);
       
       // Shadow
-      ctx.shadowBlur = 10;
-      ctx.shadowColor = 'rgba(0,0,0,0.8)';
+      ctx.shadowBlur = 15;
+      ctx.shadowColor = 'rgba(0, 255, 102, 0.4)'; // Greenish glow
       
       // Abdomen
-      ctx.fillStyle = '#222';
+      ctx.fillStyle = '#0a1a10'; // Dark green/black
       ctx.beginPath();
-      ctx.ellipse(-10, 0, 18, 12, 0, 0, Math.PI * 2);
+      ctx.ellipse(-12, 0, 20, 14, 0, 0, Math.PI * 2);
       ctx.fill();
       
-      // Cephalothorax
-      ctx.fillStyle = '#333';
+      // Glowing pattern on abdomen
+      ctx.strokeStyle = '#00ff66';
+      ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.ellipse(10, 0, 10, 8, 0, 0, Math.PI * 2);
+      ctx.moveTo(-25, 0);
+      ctx.lineTo(-5, 0);
+      ctx.moveTo(-15, -8);
+      ctx.lineTo(-15, 8);
+      ctx.stroke();
+      
+      // Cephalothorax
+      ctx.fillStyle = '#112215';
+      ctx.beginPath();
+      ctx.ellipse(12, 0, 12, 10, 0, 0, Math.PI * 2);
       ctx.fill();
 
-      // Eyes (glowing red)
-      ctx.fillStyle = '#ff0000';
-      ctx.shadowBlur = 5;
-      ctx.shadowColor = '#ff0000';
+      // Multiple Alien Eyes (glowing green/cyan)
+      ctx.fillStyle = '#00ff66';
+      ctx.shadowBlur = 10;
+      ctx.shadowColor = '#00ff66';
       ctx.beginPath();
-      ctx.arc(15, -3, 2, 0, Math.PI * 2);
-      ctx.arc(15, 3, 2, 0, Math.PI * 2);
+      ctx.arc(18, -4, 3, 0, Math.PI * 2);
+      ctx.arc(18, 4, 3, 0, Math.PI * 2);
+      ctx.arc(22, 0, 2, 0, Math.PI * 2);
+      ctx.arc(14, -8, 2, 0, Math.PI * 2);
+      ctx.arc(14, 8, 2, 0, Math.PI * 2);
       ctx.fill();
       ctx.shadowBlur = 0;
 
-      // Legs (8 legs, jointed)
-      ctx.strokeStyle = '#111';
-      ctx.lineWidth = 3;
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-      
+      // Legs (7 legs, jointed, glowing tips/joints)
       const drawLeg = (side: number, index: number, xOffset: number, yOffset: number, length1: number, length2: number, baseAngle: number) => {
         const time = Date.now() / 150;
         // Alternate leg movement
@@ -120,30 +128,53 @@ const NewtonJeepMission: React.FC<NewtonJeepMissionProps> = ({ onClose, onMissio
         const legAngle = baseAngle + Math.sin(moveOffset) * 0.3;
         const kneeAngle = legAngle + (side * 0.8) + Math.cos(moveOffset) * 0.4;
         
-        ctx.beginPath();
-        ctx.moveTo(xOffset, yOffset);
-        // Coxa/Femur
         const kneeX = xOffset + Math.cos(legAngle) * length1;
         const kneeY = yOffset + Math.sin(legAngle) * length1;
-        ctx.lineTo(kneeX, kneeY);
-        // Tibia/Tarsus
         const footX = kneeX + Math.cos(kneeAngle) * length2;
         const footY = kneeY + Math.sin(kneeAngle) * length2;
+
+        // Draw leg segments (dark base)
+        ctx.strokeStyle = '#0a1a10';
+        ctx.lineWidth = 5;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        
+        ctx.beginPath();
+        ctx.moveTo(xOffset, yOffset);
+        ctx.lineTo(kneeX, kneeY);
         ctx.lineTo(footX, footY);
         ctx.stroke();
+
+        // Glowing inner line
+        ctx.strokeStyle = '#00ff66';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(xOffset, yOffset);
+        ctx.lineTo(kneeX, kneeY);
+        ctx.lineTo(footX, footY);
+        ctx.stroke();
+        
+        // Glowing foot
+        ctx.fillStyle = '#00ff66';
+        ctx.shadowBlur = 5;
+        ctx.shadowColor = '#00ff66';
+        ctx.beginPath();
+        ctx.arc(footX, footY, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
       };
 
-      // Right legs (side = 1)
-      drawLeg(1, 0, 10, 5, 20, 25, Math.PI * 0.1);
-      drawLeg(1, 1, 5, 6, 22, 28, Math.PI * 0.3);
-      drawLeg(1, 2, 0, 6, 22, 28, Math.PI * 0.5);
-      drawLeg(1, 3, -5, 5, 20, 25, Math.PI * 0.7);
+      // Right legs (side = 1) - 4 legs
+      drawLeg(1, 0, 12, 6, 22, 28, Math.PI * 0.1);
+      drawLeg(1, 1, 6, 8, 25, 32, Math.PI * 0.3);
+      drawLeg(1, 2, 0, 8, 25, 32, Math.PI * 0.5);
+      drawLeg(1, 3, -6, 6, 22, 28, Math.PI * 0.7);
 
-      // Left legs (side = -1)
-      drawLeg(-1, 0, 10, -5, 20, 25, -Math.PI * 0.1);
-      drawLeg(-1, 1, 5, -6, 22, 28, -Math.PI * 0.3);
-      drawLeg(-1, 2, 0, -6, 22, 28, -Math.PI * 0.5);
-      drawLeg(-1, 3, -5, -5, 20, 25, -Math.PI * 0.7);
+      // Left legs (side = -1) - 3 legs (missing one to make it 7)
+      drawLeg(-1, 0, 12, -6, 22, 28, -Math.PI * 0.1);
+      drawLeg(-1, 1, 6, -8, 25, 32, -Math.PI * 0.3);
+      // Missing middle-left leg to make it the "Hétlábú Iszonyat" (Seven-Legged Horror)
+      drawLeg(-1, 3, -6, -6, 22, 28, -Math.PI * 0.7);
 
       ctx.restore();
 
