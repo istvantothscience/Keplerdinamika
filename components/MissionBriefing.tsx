@@ -77,7 +77,7 @@ const MissionBriefing: React.FC<MissionBriefingProps> = ({ mission, onClose, onO
                rel="noreferrer"
                className="flex-1 text-center py-4 bg-neon hover:bg-white text-black font-orbitron font-bold tracking-widest text-lg md:text-xl rounded shadow-[0_0_20px_rgba(0,242,255,0.4)] transition-all hover:scale-[1.01] flex items-center justify-center"
              >
-               {['S01', 'S03'].includes(mission.id) ? 'FELADATLAP' : 'CLASSROOM'}
+               {mission.id === 'PROJEKT' ? 'PROJEKT FELADAT' : ['S01', 'S02', 'S03', 'S04', 'S05', 'S06'].includes(mission.id) ? 'FELADATLAP' : 'CLASSROOM'}
              </a>
 
              {/* Simulation Button for Sector 3 and 5 */}

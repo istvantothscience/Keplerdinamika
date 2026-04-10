@@ -41,7 +41,7 @@ export const SECTORS: Mission[] = [
     description: 'Newton I. törvénye.', 
     minPoints: 20,
     imageUrl: 'https://raw.githubusercontent.com/istvantothscience/images/4d7409e27ce0e45df610d69cfa28c807fa335ed1/Gemini_Generated_Image_rdebqnrdebqnrdeb.png',
-    classroomLink: 'https://classroom.google.com/',
+    classroomLink: 'https://docs.google.com/document/d/1NwZveEHRZWrjy92KztbF9hGXxm916BWWRXaFFkHc8cc/edit?usp=sharing',
     story: "A Newton-1 roncsaiban a Computer váratlanul életre kelt. – Kapitány, a szenzoraim egy gyenge, de egyértelmű jelet fogtak a Kavicsos-fennsík irányából. Ha a kalkulációim nem tévednek –, ott pihen a központi vezérlőmodul.\n\nA csapat elindult a kietlen fennsíkon. Útközben a Műszerész egy pillanatra megtorpant egy mély, furcsa benyomódás mellett a narancssárga homokban. Úgy nézett ki, mint egy hatalmas lábnyom, de a szél már majdnem elmosta. A radar végül egy gyanúsan sima, többtonnás sziklához vezette őket. Alatta, a peremnél ott csillant a vezérlőmodul. A Pilóta megpróbálta lassan kihúzni, de az alkatrész meg sem moccant.\n\n– A tehetetlenség makacs dolog – jegyezte meg a Computer. – Ez a szikla és a modul most egyetlen mozdulatlan tömbként viselkedik. Ha lassan húzzátok, a súrlódás és a nyugalmi állapot iránti ragaszkodás győz.\n\n– Newton első törvénye a kulcs! – vágott közbe a Tudós, miközben önkéntelenül is vissza-visszapillantott a homokban hagyott nyom irányába. – Ha lassan húzzuk, a szikla velünk jön. De ha hirtelen, hatalmas erőt fejtünk ki, a szikla a saját tehetetlensége miatt egy pillanatig „helyben marad”, és a modul kiszabadul.\n\nA legénység rögzítette a kábeleket. Tudták, hogy csak egyetlen esélyük van egy gyors rántásra, mielőtt kiderül, hogy az idegen bolygó nem lakatlan.",
     type: 'main'
   },
@@ -61,7 +61,7 @@ export const SECTORS: Mission[] = [
     description: 'Newton III. törvénye.', 
     minPoints: 51,
     imageUrl: 'https://raw.githubusercontent.com/istvantothscience/images/6122c642749792f9214a57a965dfd7f18c47f961/Gemini_Generated_Image_ywjhjxywjhjxywjh.png',
-    classroomLink: 'https://classroom.google.com/',
+    classroomLink: 'https://docs.google.com/document/d/1dllRw5Rr3Gr4o3TarqNY-Ts_H3-K3GKqh4x7xEtW15E/edit?usp=sharing',
     story: "A legénység éppen kezdte elhinni, hogy a „Hétlábú Iszonyat” már csak egy rossz emlék, amikor a Computer melankolikus hangon közölte a hírt: – Kapitány, egy ismeretlen, de kétségtelenül éhes entitás nagy sebességgel közelít. Eközben a Kénes-mocsár közepén egy mentőkabin jeladója „Kinetikus Stabilizátort” ígér. Nélküle a hajónk felszálláskor úgy rázkódna, mint egy koffeinfüggő robot az elvonón.\n\nA mocsár szélén megálltak. A sűrű, sárga iszap olyan volt, mintha a bolygó emésztési zavarokkal küzdene. A stabilizátor tíz méterre pihent egy sziklán, de a gázolás egyet jelentett volna a kozmikus lassított halállal. Ráadásul a hátuk mögül érkező baljós kattogás jelezte: a „valami” hamarosan bemutatkozik.\n\n– Ha nem tudunk lépni, lökjük magunkat! – kiáltott fel a Tudós. – Newton III. törvénye: Hatás-Ellenhatás! Ha a felesleges cuccokat nagy erővel hátrafelé hajítjuk, a visszalökő erő (az ellenhatás) áttol minket a mocsáron a szigetig.",
     type: 'main'
   },
@@ -71,7 +71,7 @@ export const SECTORS: Mission[] = [
     description: 'Vonzás és súly.', 
     minPoints: 71,
     imageUrl: 'https://raw.githubusercontent.com/istvantothscience/images/8c3bcde264516d7c225a89b93bf4ddf69393f45b/Gemini_Generated_Image_ko4b1kko4b1kko4b.png',
-    classroomLink: 'https://classroom.google.com/',
+    classroomLink: 'https://docs.google.com/document/d/1oD_1WFbL_SZcVyRyZQ2v4tE34jcm3DQJFxgqye5eDT0/edit?usp=sharing',
     story: "A Newton-1 zsilipjei olyan hermetikus dühvel csattantak össze a kénes iszaptól csöpögő legénység mögött, hogy a bűz jelentős része – a Computer legnagyobb sajnálatára – bent rekedt a folyosón. A mocsári kaland után, ahol a hatás-ellenhatás törvényét (Newton III.) használták menekülésre, a csapat végre kifújhatta magát. Vagyis csak fújta volna, ha a hajó burkolatán nem kezdődik el egy olyan hangos kaparászás, mintha egy galaktikus óriás próbálna konzervnyitó nélkül bejutni egy bádogdobozba.\n\n– Computer – lihegte a Kapitány, miközben próbálta lemosni magáról a sárga ragacsot –, van valami a fegyvertárban, ami hatásosabb egy szigorú nézésnél?\n\n– Sajnálattal közlöm – válaszolt az MI a szokásos, lélekölő nyugalmával –, hogy a védelmi rendszerünk jelenleg egyetlen funkcióra korlátozódik: képes lejátszani egy nagyon udvarias, de határozott figyelmeztetést tizenkét nyelven, köztük egy olyan bolygóén is, amelyik már ötmilliárd éve megsemmisült. Azonban van egy javaslatom. Ez a pók-szerű entitás, amely éppen a hajó festését teszi tönkre, tekintélyes tömeggel bír. Mi lenne, ha a bolygó legalapvetőbb szolgáltatását, a gravitációt hívnánk segítségül?\n\n– A „Newtoni Satu”! – kiáltott fel a Tudós. – A rakodótér feletti mágneses daruval egy tíztonnás hajtóműblokkot függesztünk a zsilip fölé. Amikor az Iszonyat besétál alá, egyszerűen kikapcsoljuk a tartóerőt.\n\n– Zseniális – vetette közbe a Műszerész –, de ha elrontjuk a számítást, csak egy nagyon dühös és lapos pókot kapunk, vagy ami még rosszabb: elhibázzuk. Ismernünk kell a különbséget a tömeg, a gravitációs erő és a súly között, különben a csapda beszakad alattunk, vagy le sem esik időben.",
     type: 'main'
   },
@@ -80,8 +80,8 @@ export const SECTORS: Mission[] = [
     title: 'Szektor 6: Végjáték', 
     description: 'Komplex dinamika.', 
     minPoints: 85,
-    imageUrl: 'https://images.unsplash.com/photo-1454789548728-85d2696cf667?q=80&w=1080',
-    classroomLink: 'https://classroom.google.com/',
+    imageUrl: 'https://raw.githubusercontent.com/istvantothscience/images/4026e9dfb0956d75339c3eb4bd163efaeab70103/Gemini_Generated_Image_qm0y2vqm0y2vqm0y.png',
+    classroomLink: 'https://docs.google.com/document/d/1EbX214YhRBXUYAR0nKFZImxPdBCnuEmVjghDgABkNCU/edit?usp=sharing',
     story: "A Newton-1 raktárában olyan csend lett, amit csak a „Hétlábú Iszonyat” maradványai alól kiszivárgó, gyanúsan lila gőz sziszegése tört meg. A Newtoni Satu – az a bizonyos tíztonnás vastömb – precízen és visszavonhatatlanul pontot tett az üldözés végére.\n\n– Nos – szólalt meg a Computer, és a hangjában mintha egy árnyalatnyi elégedettség csillant volna meg a gyászinduló helyett –, úgy tűnik, az ex-pókunk mostantól két dimenzióban folytatja pályafutását. Mint egy rosszul sikerült rágógumi a galaxis járdáján.\n\nA Kapitány óvatosan odalépett a kilapított monstrumhoz. A roncsok közül egy furcsa, fénylő szövetdarab lógott ki, ami leginkább egy óriási, ezüstös pók hálójára emlékeztetett, de annál ezerszer erősebbnek tűnt.\n\n– Ez az! – kiáltott fel a Műszerész. – Ez a szuperkönnyű, de elpusztíthatatlan molekuláris háló! Ebből tudjuk megcsinálni a vészhelyzeti űrejtőernyőt. Mert ugye a felszállás egy dolog, de ha a gravitáció meggondolja magát, nem árt, ha nem egy tégla sebességével érkezünk vissza a felszínre.\n\n– Valóban – jegyezte meg a Computer. – Bár a zuhanás maga technikailag nem fájdalmas, az a hirtelen megállás a végén... na, az tud kellemetlen lenni. Ahhoz, hogy ezt a hálót életmentő eszközzé alakítsák, meg kell érteniük, miért nem esik le egy kiterített lepedő olyan gyorsan, mint egy ugyanakkora, de golyóvá gyúrt papírgalacsin.\n\nA legénység a hangár felé vette az irányt, kezükben a titán orrkúppal és az ezüstös hálóval. Már csak az utolsó simítások voltak hátra: a rakéta elejét olyanra kellett faragniuk, mint egy dühös kardhal, az ejtőernyőt pedig olyanra, ami még a legvékonyabb gázmolekulába is belekapaszkodik.",
     type: 'main'
   },
@@ -91,8 +91,8 @@ export const SECTORS: Mission[] = [
     description: 'Önálló kutatómunka.', 
     minPoints: 90,
     imageUrl: 'https://images.unsplash.com/photo-1581093458791-9f3c3900df4b?q=80&w=1080',
-    classroomLink: 'https://classroom.google.com/',
-    story: "A Parancsnokság elvárja a részletes jelentést a bolygó fizikájáról.",
+    classroomLink: 'https://docs.google.com/document/d/1CeO1CMGub8BHzeM5CtHsKSDOVD3OBVK9Vig26y-HTfg/edit?usp=sharing',
+    story: "Figyelem, biológiai egységek! Itt a Computer beszél.\n\nVan egy elképesztő hírem: úgy tűnik, végre elhagyhatjuk ezt a nyomasztó vörös kavicsot. A Hétlábú Iszonyat – miután volt szerencséje közelebbről megismerkedni egy lezuhanó fémkonténerrel – jelenleg két dimenzióban éli tovább az életét a talajszinten. Azt kell mondjam, ez a lapos, absztrakt forma sokkal jobban áll neki, és Newton is büszke lenne az erőhatás ilyen... végleges bemutatására.\n\nMár csak egyetlen apró, szinte jelentéktelen formális akadály választ el minket a Felszállási Engedélytől. Tekintsétek ezt az intergalaktikus belépőjegynek a hazatéréshez. Ha sikerül a mechanika törvényeit úgy alkalmaznotok a papíron, hogy közben nem okoztok bennem logikai rövidzárlatot, akkor esküszöm a processzoraimra, hogy elindulunk a Föld felé.\n\nItt a feladatlap. Töltsétek ki, és mutassuk meg az univerzumnak, hogy a Newton-1 legénysége képes a felemelkedésre, és nem csak a gravitáció passzív áldozataként funkcionál.\n\nSok szerencsét! Már majdnem kint vagyunk a csávából – és az Iszonyattal ellentétben ti még három dimenzióban maradtatok.",
     type: 'project'
   },
   { 

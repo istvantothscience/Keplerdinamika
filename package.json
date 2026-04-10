@@ -11,10 +11,14 @@
   "dependencies": {
     "@google/genai": "^1.38.0",
     "@supabase/supabase-js": "2.39.8",
+    "katex": "^0.16.45",
     "lucide-react": "0.330.0",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
-    "recharts": "^3.8.1"
+    "react-markdown": "^10.1.0",
+    "recharts": "^3.8.1",
+    "rehype-katex": "^7.0.1",
+    "remark-math": "^6.0.0"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",

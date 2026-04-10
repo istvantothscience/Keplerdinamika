@@ -3,6 +3,10 @@ import { createCustomChatSession } from '../services/geminiService';
 import { submitMissionProgress } from '../services/api';
 import { ChatMessage } from '../types';
 import { Type, FunctionDeclaration } from '@google/genai';
+import Markdown from 'react-markdown';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
+import 'katex/dist/katex.min.css';
 
 interface SideMissionTwoProps {
   studentName: string;
@@ -218,7 +222,11 @@ const SideMissionTwo: React.FC<SideMissionTwoProps> = ({ studentName, onClose, o
                           {msg.role === 'model' && (
                               <span className="text-neon font-bold mr-2 text-lg align-middle">{'>'}</span>
                           )}
-                          <span className="whitespace-pre-wrap">{msg.text}</span>
+                          <div className="inline-block whitespace-pre-wrap markdown-body">
+                            <Markdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+                              {msg.text}
+                            </Markdown>
+                          </div>
                       </div>
                   )}
                </div>

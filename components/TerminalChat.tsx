@@ -3,6 +3,10 @@ import { createChatSession, createCustomChatSession } from '../services/geminiSe
 import { submitMissionProgress } from '../services/api';
 import { ChatMessage } from '../types';
 import { FunctionDeclaration } from '@google/genai';
+import Markdown from 'react-markdown';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
+import 'katex/dist/katex.min.css';
 
 interface TerminalChatProps {
   studentName: string;
@@ -149,7 +153,11 @@ const TerminalChat: React.FC<TerminalChatProps> = ({ studentName, onPointsAwarde
                   : 'bg-white/5 text-gray-300 border border-white/10 rounded-tl-none'
             }`}>
               {msg.role === 'system' && <span className="font-bold block mb-1">SYSTEM NOTIFICATION:</span>}
-              <p className="whitespace-pre-wrap">{msg.text}</p>
+              <div className="whitespace-pre-wrap markdown-body">
+                <Markdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+                  {msg.text}
+                </Markdown>
+              </div>
             </div>
           </div>
         ))}
