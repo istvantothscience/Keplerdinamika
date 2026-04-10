@@ -80,7 +80,7 @@ export const SECTORS: Mission[] = [
     title: 'Szektor 6: Végjáték', 
     description: 'Komplex dinamika.', 
     minPoints: 85,
-    imageUrl: 'https://raw.githubusercontent.com/istvantothscience/images/4026e9dfb0956d75339c3eb4bd163efaeab70103/Gemini_Generated_Image_qm0y2vqm0y2vqm0y.png',
+    imageUrl: 'https://raw.githubusercontent.com/istvantothscience/images/6246eacec3093d696f5e344dba9a1e64aad7d2ae/Gemini_Generated_Image_6ctzgh6ctzgh6ctz.png',
     classroomLink: 'https://docs.google.com/document/d/1EbX214YhRBXUYAR0nKFZImxPdBCnuEmVjghDgABkNCU/edit?usp=sharing',
     story: "A Newton-1 raktárában olyan csend lett, amit csak a „Hétlábú Iszonyat” maradványai alól kiszivárgó, gyanúsan lila gőz sziszegése tört meg. A Newtoni Satu – az a bizonyos tíztonnás vastömb – precízen és visszavonhatatlanul pontot tett az üldözés végére.\n\n– Nos – szólalt meg a Computer, és a hangjában mintha egy árnyalatnyi elégedettség csillant volna meg a gyászinduló helyett –, úgy tűnik, az ex-pókunk mostantól két dimenzióban folytatja pályafutását. Mint egy rosszul sikerült rágógumi a galaxis járdáján.\n\nA Kapitány óvatosan odalépett a kilapított monstrumhoz. A roncsok közül egy furcsa, fénylő szövetdarab lógott ki, ami leginkább egy óriási, ezüstös pók hálójára emlékeztetett, de annál ezerszer erősebbnek tűnt.\n\n– Ez az! – kiáltott fel a Műszerész. – Ez a szuperkönnyű, de elpusztíthatatlan molekuláris háló! Ebből tudjuk megcsinálni a vészhelyzeti űrejtőernyőt. Mert ugye a felszállás egy dolog, de ha a gravitáció meggondolja magát, nem árt, ha nem egy tégla sebességével érkezünk vissza a felszínre.\n\n– Valóban – jegyezte meg a Computer. – Bár a zuhanás maga technikailag nem fájdalmas, az a hirtelen megállás a végén... na, az tud kellemetlen lenni. Ahhoz, hogy ezt a hálót életmentő eszközzé alakítsák, meg kell érteniük, miért nem esik le egy kiterített lepedő olyan gyorsan, mint egy ugyanakkora, de golyóvá gyúrt papírgalacsin.\n\nA legénység a hangár felé vette az irányt, kezükben a titán orrkúppal és az ezüstös hálóval. Már csak az utolsó simítások voltak hátra: a rakéta elejét olyanra kellett faragniuk, mint egy dühös kardhal, az ejtőernyőt pedig olyanra, ami még a legvékonyabb gázmolekulába is belekapaszkodik.",
     type: 'main'
@@ -90,7 +90,7 @@ export const SECTORS: Mission[] = [
     title: 'Kutatási Projekt', 
     description: 'Önálló kutatómunka.', 
     minPoints: 90,
-    imageUrl: 'https://images.unsplash.com/photo-1581093458791-9f3c3900df4b?q=80&w=1080',
+    imageUrl: 'https://raw.githubusercontent.com/istvantothscience/images/4b16ac9c80aba12e94815886536f464407d453dc/Gemini_Generated_Image_wyhxtkwyhxtkwyhx.png',
     classroomLink: 'https://docs.google.com/document/d/1CeO1CMGub8BHzeM5CtHsKSDOVD3OBVK9Vig26y-HTfg/edit?usp=sharing',
     story: "Figyelem, biológiai egységek! Itt a Computer beszél.\n\nVan egy elképesztő hírem: úgy tűnik, végre elhagyhatjuk ezt a nyomasztó vörös kavicsot. A Hétlábú Iszonyat – miután volt szerencséje közelebbről megismerkedni egy lezuhanó fémkonténerrel – jelenleg két dimenzióban éli tovább az életét a talajszinten. Azt kell mondjam, ez a lapos, absztrakt forma sokkal jobban áll neki, és Newton is büszke lenne az erőhatás ilyen... végleges bemutatására.\n\nMár csak egyetlen apró, szinte jelentéktelen formális akadály választ el minket a Felszállási Engedélytől. Tekintsétek ezt az intergalaktikus belépőjegynek a hazatéréshez. Ha sikerül a mechanika törvényeit úgy alkalmaznotok a papíron, hogy közben nem okoztok bennem logikai rövidzárlatot, akkor esküszöm a processzoraimra, hogy elindulunk a Föld felé.\n\nItt a feladatlap. Töltsétek ki, és mutassuk meg az univerzumnak, hogy a Newton-1 legénysége képes a felemelkedésre, és nem csak a gravitáció passzív áldozataként funkcionál.\n\nSok szerencsét! Már majdnem kint vagyunk a csávából – és az Iszonyattal ellentétben ti még három dimenzióban maradtatok.",
     type: 'project'
@@ -100,9 +100,9 @@ export const SECTORS: Mission[] = [
     title: 'Záróvizsga', 
     description: 'Tudáspróba.', 
     minPoints: 95,
-    imageUrl: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?q=80&w=1080',
-    classroomLink: 'https://classroom.google.com/',
-    story: "Ez az utolsó akadály a Parancsnoki rang előtt. Ne rontsa el.",
+    imageUrl: 'https://raw.githubusercontent.com/istvantothscience/images/bac6020cccbbb37cc49f8ae2ed405ca1a60411b8/Gemini_Generated_Image_lgreflgreflgrefl.png',
+    classroomLink: 'https://docs.google.com/document/d/18TXirC95VJHPHYGcBfvuon7cppCIRVDGws_CS-dDWLM/edit?usp=sharing',
+    story: "Figyelem, túlélők! Itt a Computer.\n\nJó hírem van: a hazaút szabad. Miután a Hétlábú Iszonyatból Newton törvényeinek (és egy nehéz fémkonténernek) köszönhetően egy dekoratív, kétdimenziós padlószőnyeg vált, már csak egyetlen apróság választ el minket a felszállástól: a Próba Témazáró.",
     type: 'exam'
   },
 ];

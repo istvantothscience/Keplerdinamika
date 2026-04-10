@@ -51,7 +51,6 @@ const SideMissionOne: React.FC<SideMissionOneProps> = ({ onClose, onPointsAwarde
     vy: 0,
     angle: 0,
     angularVelocity: 0,
-    lastCheckpoint: 100,
     isGrounded: true,
   });
   const itemsRef = useRef(Array(12).fill(false));
@@ -105,7 +104,7 @@ const SideMissionOne: React.FC<SideMissionOneProps> = ({ onClose, onPointsAwarde
   const stuckTimerRef = useRef(0);
 
   const handleRestart = useCallback(() => {
-      physicsRef.current.x = physicsRef.current.lastCheckpoint;
+      physicsRef.current.x = 100;
       physicsRef.current.y = 100; // Drop from sky
       physicsRef.current.vx = 0;
       physicsRef.current.vy = 0;
@@ -118,7 +117,6 @@ const SideMissionOne: React.FC<SideMissionOneProps> = ({ onClose, onPointsAwarde
 
   const handleRestartFromBeginning = useCallback(() => {
       physicsRef.current.x = 100;
-      physicsRef.current.lastCheckpoint = 100;
       physicsRef.current.y = 100; // Drop from sky
       physicsRef.current.vx = 0;
       physicsRef.current.vy = 0;
@@ -188,8 +186,8 @@ const SideMissionOne: React.FC<SideMissionOneProps> = ({ onClose, onPointsAwarde
     ctx.lineTo(w, h);
     ctx.fill();
 
-    // Checkpoints
-    const checkpoints = [2000, 4000, 6000];
+    // Checkpoints (Only Finish Line now)
+    const checkpoints = [6000];
     checkpoints.forEach(cp => {
         const screenX = cp - p.x + roverScreenX;
         if (screenX > -50 && screenX < w + 50) {
@@ -203,7 +201,7 @@ const SideMissionOne: React.FC<SideMissionOneProps> = ({ onClose, onPointsAwarde
             ctx.fillStyle = "#00ff00";
             ctx.font = "12px orbitron";
             ctx.textAlign = "center";
-            ctx.fillText(cp === 6000 ? "CÉL" : "CHECKPOINT", screenX, cpY - 110);
+            ctx.fillText("CÉL", screenX, cpY - 110);
         }
     });
 
@@ -376,10 +374,6 @@ const SideMissionOne: React.FC<SideMissionOneProps> = ({ onClose, onPointsAwarde
           return;
       }
 
-      // Checkpoints
-      if (p.x > 2000 && p.lastCheckpoint < 2000) p.lastCheckpoint = 2000;
-      if (p.x > 4000 && p.lastCheckpoint < 4000) p.lastCheckpoint = 4000;
-
       // Items collection
       for (let i = 0; i < 12; i++) {
         if (!itemsRef.current[i]) {
@@ -550,12 +544,6 @@ const SideMissionOne: React.FC<SideMissionOneProps> = ({ onClose, onPointsAwarde
                             </button>
                         </div>
                         <div className="absolute bottom-4 right-4 flex gap-4 z-10">
-                            <button 
-                                onClick={handleRestart}
-                                className="px-4 py-2 bg-black/50 border border-neon text-neon font-mono text-sm rounded hover:bg-neon hover:text-black transition-colors"
-                            >
-                                VISSZA A CHECKPOINTHOZ
-                            </button>
                             <button 
                                 onClick={handleRestartFromBeginning}
                                 className="px-4 py-2 bg-black/50 border border-alert text-alert font-mono text-sm rounded hover:bg-alert hover:text-black transition-colors"

@@ -477,7 +477,7 @@ ${PHYSICS_KNOWLEDGE_BASE}`}
                       {/* PROLOGUE BUTTON - Positioned to the left */}
                       <button 
                          onClick={() => setView('prologue')}
-                         className="absolute left-4 top-1/2 -translate-y-1/2 px-3 py-1 bg-black border border-neon/30 rounded text-[10px] font-orbitron text-neon hover:bg-neon hover:text-black hover:border-neon transition-all shadow-[0_0_10px_rgba(0,242,255,0.1)] flex items-center gap-2 group"
+                         className="absolute left-4 top-1/2 -translate-y-1/2 px-6 py-2 bg-neon/20 border border-neon rounded-full text-xs font-orbitron font-bold text-neon hover:bg-neon hover:text-black transition-all shadow-[0_0_15px_rgba(0,242,255,0.3)] hover:shadow-[0_0_20px_rgba(0,242,255,0.6)] flex items-center gap-2 group"
                       >
                          <span className="group-hover:animate-pulse">▶</span> PROLÓGUS
                       </button>
