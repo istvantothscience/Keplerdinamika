@@ -233,8 +233,7 @@ const SideMissionSix: React.FC<SideMissionSixProps> = ({ onClose, onPointsAwarde
   const submitQuiz = async () => {
     setStage('grading');
     try {
-      // @ts-ignore
-      const apiKey = import.meta.env?.VITE_API_KEY || process.env.API_KEY;
+      const apiKey = process.env.GEMINI_API_KEY;
       if (!apiKey) throw new Error("API Key hiányzik.");
       const client = new GoogleGenAI({ apiKey });
       const prompt = `Értékeld a 7. osztályos fizika diák válaszait a közegellenállásról.
