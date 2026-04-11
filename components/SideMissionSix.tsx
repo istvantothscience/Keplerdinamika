@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+// Trigger Vite reload
 import { submitMissionProgress } from '../services/api';
 import { GoogleGenAI, Type, Schema } from '@google/genai';
 
@@ -233,7 +234,8 @@ const SideMissionSix: React.FC<SideMissionSixProps> = ({ onClose, onPointsAwarde
   const submitQuiz = async () => {
     setStage('grading');
     try {
-      const apiKey = process.env.GEMINI_API_KEY;
+      // @ts-ignore
+      const apiKey = import.meta.env?.VITE_API_KEY || process.env.API_KEY;
       if (!apiKey) throw new Error("API Key hiányzik.");
       const client = new GoogleGenAI({ apiKey });
       const prompt = `Értékeld a 7. osztályos fizika diák válaszait a közegellenállásról.
@@ -372,7 +374,7 @@ const SideMissionSix: React.FC<SideMissionSixProps> = ({ onClose, onPointsAwarde
             <h3 className="text-xl font-orbitron text-neon">
               {stage === 'simulate' ? 'SZIMULÁCIÓ FOLYAMATBAN...' : 'SZIMULÁCIÓ EREDMÉNYE'}
             </h3>
-            <div className="w-full max-w-4xl aspect-[8/5] max-h-[60vh] bg-black border-2 border-gray-800 rounded relative shadow-[0_0_30px_rgba(0,0,0,0.5)] overflow-hidden shrink-0">
+            <div className="w-full max-w-4xl h-[500px] bg-black border-2 border-gray-800 rounded relative shadow-[0_0_30px_rgba(0,0,0,0.5)] overflow-hidden shrink-0">
               <canvas ref={canvasRef} width={800} height={500} className="w-full h-full block object-cover" />
             </div>
           </div>

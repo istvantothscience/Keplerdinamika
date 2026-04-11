@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+// Trigger Vite reload
 
 interface NewtonJeepMissionProps {
   onClose: () => void;
@@ -333,9 +334,9 @@ const NewtonJeepMission: React.FC<NewtonJeepMissionProps> = ({ onClose, onMissio
           </div>
 
           {/* Canvas */}
-          <div className="lg:col-span-2 bg-black border border-cyan-500/50 rounded-lg overflow-hidden relative shadow-[0_0_20px_rgba(0,242,255,0.15)] flex flex-col aspect-[2/1] max-h-[60vh]">
+          <div className="lg:col-span-2 bg-black border border-cyan-500/50 rounded-lg overflow-hidden relative shadow-[0_0_20px_rgba(0,242,255,0.15)] flex flex-col">
             <div className="absolute top-2 left-2 text-xs text-cyan-800 z-10">KAMERA: KÜLSŐ // SZEKTOR: KEPLER-452B MOCSÁR</div>
-            <canvas ref={canvasRef} width={800} height={400} className="w-full h-full object-cover" />
+            <canvas ref={canvasRef} width={800} height={400} className="w-full flex-grow object-cover" />
           </div>
         </div>
 

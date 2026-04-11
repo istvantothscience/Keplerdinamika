@@ -413,22 +413,15 @@ const SideMissionOne: React.FC<SideMissionOneProps> = ({ onClose, onPointsAwarde
   }, [simState, animate, drawScene]);
 
   useEffect(() => {
-    const handleResize = () => {
-        const canvas = canvasRef.current;
-        if (canvas && canvas.parentElement) {
-            canvas.width = canvas.parentElement.offsetWidth;
-            canvas.height = canvas.parentElement.offsetHeight || 400;
-            drawScene();
-        }
-    };
-
-    handleResize();
-    
-    // Initial setup
-    physicsRef.current.y = getTerrainHeight(physicsRef.current.x);
-    
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    const canvas = canvasRef.current;
+    if (canvas) {
+        canvas.width = canvas.parentElement?.offsetWidth || 800;
+        canvas.height = 400;
+        
+        // Initial setup
+        physicsRef.current.y = getTerrainHeight(physicsRef.current.x);
+        drawScene();
+    }
   }, [drawScene, getTerrainHeight]);
 
   const handleMatch = (qId: string, uId: string) => {
@@ -498,7 +491,7 @@ const SideMissionOne: React.FC<SideMissionOneProps> = ({ onClose, onPointsAwarde
         )}
 
         {(simState === 'intro' || simState === 'driving' || simState === 'crashed') && (
-            <div className="w-full aspect-[2/1] max-h-[60vh] bg-black border-2 border-gray-800 rounded relative shadow-[0_0_30px_rgba(0,0,0,0.5)] overflow-hidden select-none">
+            <div className="w-full h-[400px] bg-black border-2 border-gray-800 rounded relative shadow-[0_0_30px_rgba(0,0,0,0.5)] overflow-hidden select-none">
                 <canvas ref={canvasRef} className="w-full h-full block" />
                 
                 {simState === 'intro' && !isCompleted && (

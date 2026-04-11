@@ -306,7 +306,7 @@ const SideMissionThree: React.FC<SideMissionThreeProps> = ({ onClose, onPointsAw
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Simulation Viewport */}
-            <div className="lg:col-span-2 w-full aspect-[2/1] bg-black border-2 border-gray-800 rounded relative shadow-[0_0_30px_rgba(0,0,0,0.5)] overflow-hidden">
+            <div className="lg:col-span-2 w-full h-[400px] bg-black border-2 border-gray-800 rounded relative shadow-[0_0_30px_rgba(0,0,0,0.5)] overflow-hidden">
                 <canvas ref={canvasRef} width={800} height={400} className="w-full h-full block object-cover" />
             </div>
 

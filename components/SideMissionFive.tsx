@@ -502,7 +502,7 @@ const SideMissionFive: React.FC<SideMissionFiveProps> = ({ onClose, onPointsAwar
         )}
 
         {/* Simulation Viewport */}
-        <div className="w-full aspect-[2/1] max-h-[60vh] bg-black border-2 border-gray-800 rounded relative shadow-[0_0_30px_rgba(0,0,0,0.5)] overflow-hidden">
+        <div className="w-full h-[400px] bg-black border-2 border-gray-800 rounded relative shadow-[0_0_30px_rgba(0,0,0,0.5)] overflow-hidden">
             <canvas ref={canvasRef} width={800} height={400} className="w-full h-full block" />
             <div className="absolute top-4 right-4 font-mono text-neon text-xs bg-black/50 p-2 rounded border border-neon/20">
                 PONTOK: {score} // Eltüntetett bolygók: {pocketedCount}/6

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+// Trigger Vite reload
 
 interface GravitySimulationProps {
   onClose: () => void;
@@ -412,19 +413,12 @@ const GravitySimulation: React.FC<GravitySimulationProps> = ({ onClose }) => {
   }, [mass, gravity]); 
 
   useEffect(() => {
-    const handleResize = () => {
-        if (canvasRef.current && canvasRef.current.parentElement) {
-            canvasRef.current.width = canvasRef.current.parentElement.clientWidth;
-            canvasRef.current.height = canvasRef.current.parentElement.clientHeight || 450;
-            drawScene();
-        }
-    };
-
     // Inicializálás és átméretezés
-    handleResize();
-    
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    if (canvasRef.current) {
+        canvasRef.current.width = canvasRef.current.parentElement?.clientWidth || 600;
+        canvasRef.current.height = 450;
+        drawScene();
+    }
   }, [drawScene]);
 
   return (
