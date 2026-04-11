@@ -108,6 +108,11 @@ export const registerStudent = async (name: string, email: string, password: str
 export const submitMissionProgress = async (name: string, points: number, missionId: string): Promise<number> => {
   console.log(`[API] Processing update for ${name}: Mission ${missionId}, Points ${points}`);
 
+  if (name.includes('TesztPista')) {
+      console.log('Test user detected, skipping DB update.');
+      return 100 + points; // Return a fake total so UI doesn't reset to 0
+  }
+
   // 1. Fetch current data to have the latest arrays
   const { data: currentData, error: fetchError } = await supabase
       .from('students')
