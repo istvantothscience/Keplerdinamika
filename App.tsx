@@ -71,6 +71,23 @@ const App: React.FC = () => {
   const [showDynamicsSim, setShowDynamicsSim] = useState(false); // Placeholder for S03
   const [showQuizChat, setShowQuizChat] = useState(false);
 
+  const handleTestLogin = () => {
+    setUser({
+      name: 'TesztPista (Zsűri)',
+      characterType: CharacterClass.PILOT,
+      level: 5,
+      totalPoints: 100,
+      completedMissions: [],
+      scores: {
+        lessons: [5, 4, 5, 3, 5, 4],
+        homework: [10, 8, 9, 10, 7, 0],
+        project: 18,
+        exam: 0
+      },
+      isAdmin: false
+    });
+  };
+
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -261,13 +278,27 @@ const App: React.FC = () => {
                   </button>
                 </form>
 
-                <div className="mt-6 text-center">
-                    <button 
-                        onClick={() => setIsRegistering(!isRegistering)}
-                        className="text-[10px] font-mono text-gray-500 hover:text-neon underline"
-                    >
-                        {isRegistering ? 'VISSZA A BELÉPÉSHEZ' : 'ÚJ FIÓK LÉTREHOZÁSA'}
-                    </button>
+                <div className="mt-6 flex flex-col gap-4">
+                    <div className="text-center">
+                        <button 
+                            onClick={() => setIsRegistering(!isRegistering)}
+                            className="text-[10px] font-mono text-gray-500 hover:text-neon underline"
+                        >
+                            {isRegistering ? 'VISSZA A BELÉPÉSHEZ' : 'ÚJ FIÓK LÉTREHOZÁSA'}
+                        </button>
+                    </div>
+                    
+                    <div className="border-t border-gray-800 pt-4">
+                        <button 
+                            type="button"
+                            onClick={handleTestLogin}
+                            className="w-full relative group overflow-hidden bg-gradient-to-b from-green-900 to-green-950 hover:from-green-800 hover:to-green-900 text-green-400 font-orbitron font-bold py-3 rounded border border-green-500/50 shadow-[0_0_15px_rgba(34,197,94,0.2)] transition-all duration-300 uppercase tracking-widest text-sm"
+                        >
+                            <span className="relative z-10 flex items-center justify-center gap-2">
+                                TESZTELÉS
+                            </span>
+                        </button>
+                    </div>
                 </div>
            </div>
         </div>
