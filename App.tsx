@@ -391,22 +391,22 @@ ${PHYSICS_KNOWLEDGE_BASE}`}
       {activeSideMission === 6 && <SideMissionSix studentName={user.name} onPointsAwarded={updatePoints} onMissionComplete={handleMissionComplete} onClose={() => setActiveSideMission(null)} isCompleted={user.completedMissions?.includes('sm6_air_resistance') || false} />}
 
       {/* --- TOP OVERHEAD PANEL (Header) --- */}
-      <header className="z-30 h-20 bg-panel-metal border-b border-gray-800 flex items-center px-6 justify-between shadow-2xl shrink-0">
+      <header className="z-30 h-auto min-h-[5rem] py-3 md:py-0 md:h-20 bg-panel-metal border-b border-gray-800 flex flex-wrap items-center px-4 md:px-6 justify-between shadow-2xl shrink-0 gap-4">
           {/* Screws */}
-          <div className="absolute top-2 left-4"><Screw /></div>
-          <div className="absolute top-2 right-4"><Screw /></div>
-          <div className="absolute bottom-2 left-1/2"><Screw /></div>
+          <div className="hidden md:block absolute top-2 left-4"><Screw /></div>
+          <div className="hidden md:block absolute top-2 right-4"><Screw /></div>
+          <div className="hidden md:block absolute bottom-2 left-1/2"><Screw /></div>
 
           {/* User ID Plate */}
-          <div className="flex items-center gap-4 bg-black/40 px-4 py-2 rounded border border-gray-700 cursor-pointer hover:bg-black/60 transition-colors" onClick={() => setView('profile')} title="Profil Megnyitása">
-              <div className="w-10 h-10 border border-neon/50 rounded overflow-hidden">
+          <div className="flex items-center gap-3 bg-black/40 px-3 py-2 rounded border border-gray-700 cursor-pointer hover:bg-black/60 transition-colors" onClick={() => setView('profile')} title="Profil Megnyitása">
+              <div className="w-8 h-8 md:w-10 md:h-10 border border-neon/50 rounded overflow-hidden shrink-0">
                  <img src={`/img/${user.characterType}_${user.level}.png`} onError={(e) => e.currentTarget.src = `https://api.dicebear.com/7.x/adventurer/svg?seed=${user.characterType}${user.level}`} alt="Avatar" className="w-full h-full object-cover" />
               </div>
               <div>
-                  <h2 className="text-lg font-orbitron text-white leading-none uppercase">{user.name}</h2>
-                  <div className="flex gap-2 text-[10px] text-neon mt-1">
-                      <span className="bg-neon/10 px-1 rounded">{rank}</span>
-                      <span>LVL {user.level}</span>
+                  <h2 className="text-sm md:text-lg font-orbitron text-white leading-none uppercase truncate max-w-[100px] md:max-w-[200px]">{user.name}</h2>
+                  <div className="flex gap-2 text-[8px] md:text-[10px] text-neon mt-1">
+                      <span className="bg-neon/10 px-1 rounded truncate max-w-[60px] md:max-w-none">{rank}</span>
+                      <span className="shrink-0">LVL {user.level}</span>
                   </div>
               </div>
           </div>
@@ -424,15 +424,15 @@ ${PHYSICS_KNOWLEDGE_BASE}`}
           </div>
 
           {/* Right Side: Clock & Logout */}
-          <div className="flex items-center gap-6">
-              <div className="hidden md:flex flex-col items-end border-r border-gray-700 pr-6">
-                  <div className="text-[10px] text-gray-500 uppercase tracking-widest">FEDÉLZETI IDŐ</div>
-                  <div className="font-mono text-neon text-xl tracking-widest shadow-neon-glow leading-none mt-1">
+          <div className="flex items-center gap-4 md:gap-6 ml-auto">
+              <div className="hidden sm:flex flex-col items-end border-r border-gray-700 pr-4 md:pr-6">
+                  <div className="text-[8px] md:text-[10px] text-gray-500 uppercase tracking-widest">FEDÉLZETI IDŐ</div>
+                  <div className="font-mono text-neon text-sm md:text-xl tracking-widest shadow-neon-glow leading-none mt-1">
                       {timeString}
                   </div>
               </div>
 
-              <button onClick={() => setUser(null)} className="tech-btn px-4 py-2 text-red-500 text-xs font-bold font-orbitron uppercase rounded hover:text-red-400 transition-colors">
+              <button onClick={() => setUser(null)} className="tech-btn px-2 md:px-4 py-2 text-red-500 text-[10px] md:text-xs font-bold font-orbitron uppercase rounded hover:text-red-400 transition-colors">
                   KIJELENTKEZÉS
               </button>
           </div>
@@ -472,30 +472,30 @@ ${PHYSICS_KNOWLEDGE_BASE}`}
                   </div>
 
                   {/* Tab Buttons Container */}
-                  <div className="flex justify-center -mb-[2px] z-30 relative">
+                  <div className="flex justify-center -mb-[2px] z-30 relative px-2">
                       
                       {/* PROLOGUE BUTTON - Positioned to the left */}
                       <button 
                          onClick={() => setView('prologue')}
-                         className="absolute left-4 top-1/2 -translate-y-1/2 px-6 py-2 bg-neon/20 border border-neon rounded-full text-xs font-orbitron font-bold text-neon hover:bg-neon hover:text-black transition-all shadow-[0_0_15px_rgba(0,242,255,0.3)] hover:shadow-[0_0_20px_rgba(0,242,255,0.6)] flex items-center gap-2 group"
+                         className="absolute left-2 md:left-4 top-1/2 -translate-y-1/2 px-2 py-1 md:px-6 md:py-2 bg-neon/20 border border-neon rounded-full text-[10px] md:text-xs font-orbitron font-bold text-neon hover:bg-neon hover:text-black transition-all shadow-[0_0_15px_rgba(0,242,255,0.3)] hover:shadow-[0_0_20px_rgba(0,242,255,0.6)] flex items-center gap-1 md:gap-2 group z-40"
                       >
-                         <span className="group-hover:animate-pulse">▶</span> PROLÓGUS
+                         <span className="group-hover:animate-pulse">▶</span> <span className="hidden sm:inline">PROLÓGUS</span>
                       </button>
 
-                      <div className="bg-black/80 border border-neon/50 rounded-full p-1 flex backdrop-blur-md shadow-[0_0_20px_rgba(0,242,255,0.2)]">
+                      <div className="bg-black/80 border border-neon/50 rounded-full p-1 flex backdrop-blur-md shadow-[0_0_20px_rgba(0,242,255,0.2)] max-w-full overflow-x-auto scrollbar-hide">
                           <button 
                             onClick={() => setActiveTab('main')}
-                            className={`px-8 py-2 rounded-full font-orbitron text-xs tracking-widest transition-all duration-300 ${
+                            className={`px-4 md:px-8 py-2 rounded-full font-orbitron text-[10px] md:text-xs tracking-widest transition-all duration-300 whitespace-nowrap ${
                                 activeTab === 'main' 
                                 ? 'bg-neon text-black shadow-[0_0_15px_#00f2ff] font-bold' 
                                 : 'text-gray-500 hover:text-white'
                             }`}
                           >
-                              FŐ KÜLDETÉSEK (RADAR)
+                              FŐ KÜLDETÉSEK
                           </button>
                           <button 
                             onClick={() => setActiveTab('side')}
-                            className={`px-8 py-2 rounded-full font-orbitron text-xs tracking-widest transition-all duration-300 ${
+                            className={`px-4 md:px-8 py-2 rounded-full font-orbitron text-[10px] md:text-xs tracking-widest transition-all duration-300 whitespace-nowrap ${
                                 activeTab === 'side' 
                                 ? 'bg-alert text-black shadow-[0_0_15px_orange] font-bold' 
                                 : 'text-gray-500 hover:text-white'
@@ -657,8 +657,8 @@ ${PHYSICS_KNOWLEDGE_BASE}`}
       </main>
 
       {/* --- BOTTOM DECK: TERMINAL --- */}
-      <footer className="h-96 shrink-0 bg-panel-metal border-t border-gray-800 p-4 relative z-30 shadow-2xl">
-           <div className="absolute top-2 left-1/2 -ml-2"><Screw /></div>
+      <footer className="h-64 md:h-96 shrink-0 bg-panel-metal border-t border-gray-800 p-2 md:p-4 relative z-30 shadow-2xl">
+           <div className="absolute top-2 left-1/2 -ml-2 hidden md:block"><Screw /></div>
 
            <div className="container mx-auto max-w-5xl h-full flex flex-col">
                <div className="flex items-center justify-between mb-2">
