@@ -43,12 +43,11 @@ export const grantPointsTool: FunctionDeclaration = {
 let client: GoogleGenAI | null = null;
 
 export const initializeGemini = () => {
-  // Try to get key from Vite env or standard process env
-  // @ts-ignore
-  const apiKey = import.meta.env?.VITE_API_KEY || process.env.API_KEY;
+  // Use the platform-provided GEMINI_API_KEY exactly as required by the skill
+  const apiKey = process.env.GEMINI_API_KEY;
 
   if (!apiKey) {
-    console.error("Gemini API Key missing. Please set VITE_API_KEY in .env file.");
+    console.error("GEMINI_API_KEY is missing in the environment.");
     return;
   }
   client = new GoogleGenAI({ apiKey: apiKey });

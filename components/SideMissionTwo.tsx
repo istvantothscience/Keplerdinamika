@@ -170,10 +170,11 @@ const SideMissionTwo: React.FC<SideMissionTwoProps> = ({ studentName, onClose, o
 
     } catch (e) {
       console.error(e);
+      const errorMsg = e instanceof Error ? e.message : String(e);
       setMessages(prev => [...prev, {
         id: Date.now().toString(),
         role: 'system',
-        text: 'CRITICAL ERROR: CONNECTION LOST.',
+        text: `CRITICAL ERROR: ${errorMsg.includes('API Key hiányzik') ? 'GEMINI_API_KEY HIÁNYZIK.' : 'CONNECTION LOST.'}`,
         timestamp: Date.now()
       }]);
     } finally {

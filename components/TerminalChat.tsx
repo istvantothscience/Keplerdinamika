@@ -113,10 +113,11 @@ const TerminalChat: React.FC<TerminalChatProps> = ({ studentName, onPointsAwarde
 
     } catch (e) {
       console.error(e);
+      const errorMsg = e instanceof Error ? e.message : String(e);
       setMessages(prev => [...prev, {
         id: Date.now().toString(),
         role: 'system',
-        text: 'HIBA: Kommunikációs hiba a főmodullal. (Ellenőrizze az API kulcsot vagy a kapcsolatot)',
+        text: `HIBA: ${errorMsg.includes('API Key hiányzik') ? 'Hiányzik a Gemini API kulcs. Kérjük, állítsa be a GEMINI_API_KEY változót a Settings menüben.' : 'Kommunikációs hiba a főmodullal.'}`,
         timestamp: Date.now()
       }]);
     } finally {
