@@ -39,6 +39,8 @@ const SideMissionSix: React.FC<SideMissionSixProps> = ({ onClose, onPointsAwarde
   const [feedback, setFeedback] = useState<string>('');
   const [totalScore, setTotalScore] = useState(0);
 
+  const timeoutSetRef = useRef(false);
+
   const isAdjacent = (r: number, c: number, g: boolean[][]) => {
     for (let dr = -1; dr <= 1; dr++) {
       for (let dc = -1; dc <= 1; dc++) {
@@ -112,6 +114,15 @@ const SideMissionSix: React.FC<SideMissionSixProps> = ({ onClose, onPointsAwarde
     ctx.fillStyle = '#050510';
     ctx.fillRect(0, 0, w, h);
 
+    // Draw static stars background
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+    for (let i = 0; i < 150; i++) {
+      const x = (Math.sin(i * 123.45) * 0.5 + 0.5) * w;
+      const y = (Math.cos(i * 678.9) * 0.5 + 0.5) * h;
+      const size = 1 + (i % 3);
+      ctx.fillRect(x, y, size, size);
+    }
+
     const sectionW = w / 3;
     const groundY = h - 50;
 
@@ -124,7 +135,7 @@ const SideMissionSix: React.FC<SideMissionSixProps> = ({ onClose, onPointsAwarde
     ctx.lineTo(w, groundY);
     ctx.stroke();
 
-    const cellSize = 10;
+    const cellSize = 15;
 
     designs.forEach((design, idx) => {
       const state = simStateRef.current[idx];
@@ -146,16 +157,16 @@ const SideMissionSix: React.FC<SideMissionSixProps> = ({ onClose, onPointsAwarde
 
       // HUD
       ctx.fillStyle = '#00f2ff';
-      ctx.font = '12px monospace';
-      ctx.fillText(`V: ${state.v.toFixed(1)} m/s`, idx * sectionW + 10, 20);
-      ctx.fillText(`W: ${state.w}`, idx * sectionW + 10, 35);
+      ctx.font = 'bold 20px monospace';
+      ctx.fillText(`V: ${state.v.toFixed(1)} m/s`, idx * sectionW + 20, 30);
+      ctx.fillText(`W: ${state.w}`, idx * sectionW + 20, 55);
     });
 
     // Draw Graph
-    const graphW = 200;
-    const graphH = 100;
-    const graphX = w - graphW - 10;
-    const graphY = 10;
+    const graphW = 300;
+    const graphH = 150;
+    const graphX = w - graphW - 20;
+    const graphY = 20;
     
     ctx.fillStyle = 'rgba(0,0,0,0.7)';
     ctx.fillRect(graphX, graphY, graphW, graphH);
@@ -167,7 +178,7 @@ const SideMissionSix: React.FC<SideMissionSixProps> = ({ onClose, onPointsAwarde
       if (hist.length > 1) {
         ctx.beginPath();
         ctx.strokeStyle = colors[idx];
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 3;
         const maxV = 40;
         const maxT = 600;
         hist.forEach((pt, i) => {
@@ -210,7 +221,8 @@ const SideMissionSix: React.FC<SideMissionSixProps> = ({ onClose, onPointsAwarde
         }
       });
 
-      if (allFinished) {
+      if (allFinished && stage === 'simulate' && !timeoutSetRef.current) {
+        timeoutSetRef.current = true;
         setTimeout(() => setStage('quiz'), 2000);
       }
     }
@@ -224,7 +236,7 @@ const SideMissionSix: React.FC<SideMissionSixProps> = ({ onClose, onPointsAwarde
   useEffect(() => {
     if (stage === 'simulate') {
       requestRef.current = requestAnimationFrame(loop);
-    } else if (stage === 'quiz') {
+    } else if (stage === 'quiz' || stage === 'grading' || stage === 'result') {
       drawSimulation();
     }
     return () => cancelAnimationFrame(requestRef.current);
@@ -284,19 +296,20 @@ const SideMissionSix: React.FC<SideMissionSixProps> = ({ onClose, onPointsAwarde
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-[#0a0b10] overflow-y-auto">
-      <div className="sticky top-0 z-40 bg-black/90 backdrop-blur border-b border-neon/30 p-4 flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-orbitron text-neon tracking-widest">OP-06 // EJTŐERNYŐ TERVEZÉS</h2>
-          <div className="text-xs font-mono text-gray-400">AERODINAMIKAI TERVEZŐ MODUL</div>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 font-mono">
+      <div className="bg-[#0a0b10] border border-neon/30 rounded-xl shadow-[0_0_50px_rgba(0,242,255,0.1)] w-full max-w-7xl max-h-[95vh] flex flex-col overflow-hidden">
+        <div className="shrink-0 bg-black/90 backdrop-blur border-b border-neon/30 p-4 flex justify-between items-center">
+          <div>
+            <h2 className="text-2xl font-orbitron text-neon tracking-widest">OP-06 // EJTŐERNYŐ TERVEZÉS</h2>
+            <div className="text-xs font-mono text-gray-400">AERODINAMIKAI TERVEZŐ MODUL</div>
+          </div>
+          <button onClick={onClose} className="px-4 py-2 border border-red-500 text-red-500 hover:bg-red-500 hover:text-white transition-colors font-mono rounded font-bold">
+              BEZÁRÁS [X]
+          </button>
         </div>
-        <button onClick={onClose} className="px-4 py-2 border border-red-500 text-red-500 hover:bg-red-500 hover:text-white transition-colors font-mono rounded font-bold">
-            BEZÁRÁS [X]
-        </button>
-      </div>
 
-      <div className="container mx-auto max-w-5xl p-6 space-y-8 pb-20 relative">
-        {isCompleted && stage === 'build' && (
+        <div className="flex-1 overflow-y-auto p-6 relative space-y-8">
+          {isCompleted && stage === 'build' && (
             <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm rounded-xl">
                 <div className="bg-green-900/80 border-2 border-green-500 p-8 rounded-xl text-center shadow-[0_0_50px_rgba(34,197,94,0.5)]">
                     <div className="text-6xl mb-4">✅</div>
@@ -367,13 +380,13 @@ const SideMissionSix: React.FC<SideMissionSixProps> = ({ onClose, onPointsAwarde
           </div>
         )}
 
-        {(stage === 'simulate' || stage === 'quiz') && (
+        {(stage === 'simulate' || stage === 'quiz' || stage === 'grading' || stage === 'result') && (
           <div className="flex flex-col items-center space-y-4 mb-8">
             <h3 className="text-xl font-orbitron text-neon">
               {stage === 'simulate' ? 'SZIMULÁCIÓ FOLYAMATBAN...' : 'SZIMULÁCIÓ EREDMÉNYE'}
             </h3>
-            <div className="w-full max-w-4xl aspect-[8/5] max-h-[60vh] bg-black border-2 border-gray-800 rounded relative shadow-[0_0_30px_rgba(0,0,0,0.5)] overflow-hidden shrink-0">
-              <canvas ref={canvasRef} width={800} height={500} className="w-full h-full block object-cover" />
+            <div className="w-full max-w-6xl bg-black border-2 border-gray-800 rounded relative shadow-[0_0_30px_rgba(0,0,0,0.5)] overflow-hidden shrink-0 flex justify-center items-center">
+              <canvas ref={canvasRef} width={1200} height={700} className="w-full h-auto object-contain" />
             </div>
           </div>
         )}
@@ -444,6 +457,7 @@ const SideMissionSix: React.FC<SideMissionSixProps> = ({ onClose, onPointsAwarde
                     setGrid(Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(false)));
                     setBlocksUsed(0);
                     setAnswers(['', '', '']);
+                    timeoutSetRef.current = false;
                   }}
                   className="px-6 py-3 bg-gray-800 text-white font-orbitron font-bold rounded hover:bg-gray-700"
                 >
@@ -456,6 +470,7 @@ const SideMissionSix: React.FC<SideMissionSixProps> = ({ onClose, onPointsAwarde
             </div>
           </div>
         )}
+      </div>
       </div>
     </div>
   );
