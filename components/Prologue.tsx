@@ -77,7 +77,7 @@ const Prologue: React.FC<PrologueProps> = ({ onClose }) => {
                         <p>
                             A <span className="text-white font-bold">Newton-1</span> legénysége éppen a szintetikus kávé ihatatlanságáról vitatkozott, 
                             amikor a <span className="text-neon">Kepler-452b</span> gravitációs anomáliája úgy döntött, véget vet a kényelemnek. 
-                            Miközben a hajócomputer udvariasan közölte, hogy a Gravitációs erő ($F_g$) éppen palacsintává készül lapítani mindenkit, 
+                            Miközben a hajócomputer udvariasan közölte, hogy a Gravitációs erő  éppen palacsintává készül lapítani mindenkit, 
                             a tehetetlenség – a dolgok makacs ragaszkodása az eredeti irányukhoz – könyörtelenül a felszínbe vezette a hajót.
                         </p>
                         
