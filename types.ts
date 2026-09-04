@@ -14,12 +14,15 @@ export interface StudentScores {
 export interface StudentData {
   name: string;
   email?: string;
+  classCode?: string;
   totalPoints: number;
   scores: StudentScores;
   characterType: CharacterClass;
   level: number;
   isAdmin?: boolean;
   completedMissions?: string[];
+  /** true, ha a diáknak még nincs kiválasztott kasztja (első belépés) */
+  needsCharacter?: boolean;
 }
 
 export interface Mission {

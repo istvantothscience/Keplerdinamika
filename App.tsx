@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { StudentData, Mission, CharacterClass } from './types';
-import { loginStudent, registerStudent } from './services/api';
+import { signIn, restoreSession, signOutStudent, saveCharacter } from './services/api';
 import { getRankTitle } from './constants';
 import RadarMap from './components/RadarMap';
 import TerminalChat from './components/TerminalChat';
@@ -13,7 +13,6 @@ import SideMissionFive from './components/SideMissionFive';
 import SideMissionSix from './components/SideMissionSix';
 import GravitySimulation from './components/GravitySimulation'; // Imported new component
 import NewtonJeepMission from './components/NewtonJeepMission';
-import AdminDashboard from './components/AdminDashboard';
 import CharacterCard from './components/CharacterCard';
 import Prologue from './components/Prologue';
 import { grantPointsTool } from './services/geminiService';
@@ -48,6 +47,7 @@ const StatusLight = ({ label, color = "bg-red-500", blink = false }: any) => (
 const App: React.FC = () => {
   const [user, setUser] = useState<StudentData | null>(null);
   const [loading, setLoading] = useState(false);
+  const [booting, setBooting] = useState(true);
   const [view, setView] = useState<ViewState>('dashboard');
   const [activeTab, setActiveTab] = useState<DashboardTab>('main');
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -58,11 +58,29 @@ const App: React.FC = () => {
     return () => clearInterval(timer);
   }, []);
 
+  // Meglévő Supabase munkamenet visszaállítása induláskor
+  useEffect(() => {
+    let cancelled = false;
+    restoreSession()
+      .then((student) => {
+        if (!cancelled && student) setUser(student);
+      })
+      .catch(() => {
+        /* elévült / érvénytelen session — a Login képernyő jön */
+      })
+      .finally(() => {
+        if (!cancelled) setBooting(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const timeString = currentTime.toLocaleTimeString('hu-HU', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   
-  // Login/Register State
-  const [isRegistering, setIsRegistering] = useState(false);
-  const [authForm, setAuthForm] = useState({ name: '', email: '', password: '', charClass: CharacterClass.SCIENTIST });
+  // Login State (közös Supabase Auth — e-mail + jelszó)
+  const [authForm, setAuthForm] = useState({ email: '', password: '' });
+  const [authError, setAuthError] = useState<string | null>(null);
   
   // Mission States
   const [selectedMission, setSelectedMission] = useState<Mission | null>(null);
@@ -91,20 +109,28 @@ const App: React.FC = () => {
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setAuthError(null);
     try {
-      if (isRegistering) {
-          const newUser = await registerStudent(authForm.name, authForm.email, authForm.password, authForm.charClass);
-          setUser(newUser);
-      } else {
-          const student = await loginStudent(authForm.name, authForm.password);
-          if (student) setUser(student);
-          else alert('Azonosítás sikertelen. Próbálja újra.');
-      }
+      const student = await signIn(authForm.email, authForm.password);
+      setUser(student);
     } catch (err) {
-      alert('Hálózati hiba.');
+      setAuthError(err instanceof Error ? err.message : 'Sikertelen azonosítás. Próbáld újra.');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handlePickCharacter = (cls: CharacterClass) => {
+    saveCharacter(cls);
+    setUser((prev) => (prev ? { ...prev, characterType: cls, needsCharacter: false } : prev));
+  };
+
+  const handleLogout = async () => {
+    await signOutStudent();
+    setUser(null);
+    setView('dashboard');
+    setAuthForm({ email: '', password: '' });
+    setAuthError(null);
   };
 
   const updatePoints = (newTotal: number) => {
@@ -189,13 +215,22 @@ const App: React.FC = () => {
       }
   };
 
+  // --- BOOT SCREEN (munkamenet visszaállítása) ---
+  if (booting) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-black font-orbitron text-neon tracking-widest text-sm animate-pulse">
+        RENDSZER INICIALIZÁLÁSA...
+      </div>
+    );
+  }
+
   // --- AUTH SCREEN ---
   if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 bg-black overflow-hidden relative font-mono">
         <div className="absolute inset-0 bg-carbon opacity-30"></div>
         <div className="absolute inset-0 bg-grid-pattern opacity-10"></div>
-        
+
         {/* Auth Box styled as a secure panel */}
         <div className="relative z-10 w-full max-w-lg bg-panel-metal p-1 rounded-xl shadow-2xl border border-gray-800">
            {/* Screws */}
@@ -206,90 +241,71 @@ const App: React.FC = () => {
 
            <div className="bg-[#050505] m-2 p-8 rounded-lg border border-gray-800 relative overflow-hidden">
                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-neon to-transparent"></div>
-               
+
                <div className="text-center mb-8 pb-4 border-b border-gray-800">
                   <h1 className="text-4xl font-orbitron text-white tracking-widest mb-2">KEPLER-452B</h1>
                   <div className="inline-block px-2 py-1 bg-neon/10 border border-neon/30 text-neon text-[10px] tracking-[0.3em]">SECURE_LOGIN_TERMINAL</div>
                </div>
-            
+
                 <form onSubmit={handleAuth} className="space-y-4">
                   <div className="space-y-1">
-                    <label className="text-[10px] font-mono text-gray-500 uppercase">Azonosító</label>
-                    <input 
-                      type="text" 
+                    <label className="text-[10px] font-mono text-gray-500 uppercase">Email (iskolai Pontkövető fiók)</label>
+                    <input
+                      type="email"
                       required
-                      value={authForm.name}
-                      onChange={(e) => setAuthForm({...authForm, name: e.target.value})}
+                      autoComplete="email"
+                      value={authForm.email}
+                      onChange={(e) => setAuthForm({...authForm, email: e.target.value})}
                       className="w-full bg-[#111] border border-gray-700 rounded text-neon p-3 focus:border-neon focus:shadow-[0_0_10px_rgba(0,242,255,0.1)] outline-none font-mono tracking-wider"
                     />
                   </div>
 
-                  {isRegistering && (
-                      <div className="space-y-1 animate-fadeIn">
-                        <label className="text-[10px] font-mono text-gray-500 uppercase">Email</label>
-                        <input 
-                          type="email" 
-                          required
-                          value={authForm.email}
-                          onChange={(e) => setAuthForm({...authForm, email: e.target.value})}
-                          className="w-full bg-[#111] border border-gray-700 rounded text-neon p-3 focus:border-neon outline-none font-mono"
-                        />
-                      </div>
-                  )}
-
                   <div className="space-y-1">
                     <label className="text-[10px] font-mono text-gray-500 uppercase">Jelszó</label>
-                    <input 
-                      type="password" 
+                    <input
+                      type="password"
                       required
+                      autoComplete="current-password"
                       value={authForm.password}
                       onChange={(e) => setAuthForm({...authForm, password: e.target.value})}
                       className="w-full bg-[#111] border border-gray-700 rounded text-neon p-3 focus:border-neon outline-none font-mono"
                     />
                   </div>
 
-                  {isRegistering && (
-                      <div className="space-y-1 animate-fadeIn">
-                        <label className="text-[10px] font-mono text-gray-500 uppercase">Kaszt</label>
-                        <div className="grid grid-cols-3 gap-2">
-                            {Object.values(CharacterClass).map((c) => (
-                                <button
-                                    type="button"
-                                    key={c}
-                                    onClick={() => setAuthForm({...authForm, charClass: c})}
-                                    className={`text-[10px] p-2 border rounded font-orbitron uppercase transition-all ${authForm.charClass === c ? 'bg-neon text-black border-neon' : 'bg-gray-900 border-gray-700 text-gray-400 hover:border-gray-500'}`}
-                                >
-                                    {c}
-                                </button>
-                            ))}
-                        </div>
-                      </div>
+                  {authError && (
+                    <div className="text-[11px] font-mono text-red-400 border border-red-500/40 bg-red-500/10 rounded p-2 animate-fadeIn">
+                      {authError}
+                    </div>
                   )}
 
-                  <button 
+                  <button
                     type="submit"
                     disabled={loading}
                     className="w-full relative group overflow-hidden bg-gradient-to-b from-[#006090] to-[#001030] hover:from-[#0070a0] hover:to-[#002040] text-white font-orbitron font-bold py-4 rounded border-t-2 border-cyan-400 shadow-[0_0_20px_rgba(0,100,255,0.4)] transition-all duration-300 uppercase tracking-widest mt-6"
                   >
                     <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.1)_1px,transparent_1px)] bg-[size:4px_4px] opacity-20 group-hover:opacity-40 transition-opacity pointer-events-none"></div>
                     <span className="relative z-10 flex items-center justify-center gap-2 drop-shadow-md">
-                      {loading ? 'FELDOLGOZÁS...' : (isRegistering ? 'REGISZTRÁCIÓ' : 'BELÉPÉS')}
+                      {loading ? 'FELDOLGOZÁS...' : 'BELÉPÉS'}
                     </span>
                   </button>
                 </form>
 
                 <div className="mt-6 flex flex-col gap-4">
-                    <div className="text-center">
-                        <button 
-                            onClick={() => setIsRegistering(!isRegistering)}
-                            className="text-[10px] font-mono text-gray-500 hover:text-neon underline"
+                    <div className="text-center text-[10px] font-mono text-gray-500 leading-relaxed">
+                        Nincs még fiókod, vagy elfelejtetted a jelszót?<br />
+                        <a
+                            href="https://fizika-pontkoveto.vercel.app"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-neon hover:underline"
                         >
-                            {isRegistering ? 'VISSZA A BELÉPÉSHEZ' : 'ÚJ FIÓK LÉTREHOZÁSA'}
-                        </button>
+                            fizika-pontkoveto.vercel.app
+                        </a>
+                        {' '}→ „Első belépés”
                     </div>
-                    
+
                     <div className="border-t border-gray-800 pt-4">
-                        <button 
+                        <button
                             type="button"
                             onClick={handleTestLogin}
                             className="w-full relative group overflow-hidden bg-gradient-to-b from-green-900 to-green-950 hover:from-green-800 hover:to-green-900 text-green-400 font-orbitron font-bold py-3 rounded border border-green-500/50 shadow-[0_0_15px_rgba(34,197,94,0.2)] transition-all duration-300 uppercase tracking-widest text-sm"
@@ -306,9 +322,32 @@ const App: React.FC = () => {
     );
   }
 
-  // --- ADMIN VIEW ---
-  if (user.isAdmin) {
-    return <AdminDashboard onLogout={() => setUser(null)} />;
+  // --- ELSŐ BELÉPÉS: KASZT VÁLASZTÁSA ---
+  if (user.needsCharacter) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4 bg-black relative font-mono">
+        <div className="absolute inset-0 bg-carbon opacity-30"></div>
+        <div className="relative z-10 w-full max-w-lg bg-[#050505] p-8 rounded-lg border border-gray-800">
+          <div className="text-center mb-8">
+            <h1 className="text-2xl font-orbitron text-white tracking-widest mb-2">ÜDV A FEDÉLZETEN,</h1>
+            <div className="text-neon font-orbitron tracking-widest">{user.name.toUpperCase()}</div>
+            <p className="text-[11px] text-gray-500 mt-4">Válaszd ki a kasztodat a küldetéshez:</p>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            {Object.values(CharacterClass).map((c) => (
+              <button
+                key={c}
+                type="button"
+                onClick={() => handlePickCharacter(c)}
+                className="p-4 border border-gray-700 rounded font-orbitron uppercase text-xs text-gray-300 bg-gray-900 hover:bg-neon hover:text-black hover:border-neon transition-all"
+              >
+                {c}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
   }
 
   // --- PROFILE VIEW ---
@@ -463,7 +502,7 @@ ${PHYSICS_KNOWLEDGE_BASE}`}
                   </div>
               </div>
 
-              <button onClick={() => setUser(null)} className="tech-btn px-2 md:px-4 py-2 text-red-500 text-[10px] md:text-xs font-bold font-orbitron uppercase rounded hover:text-red-400 transition-colors">
+              <button onClick={handleLogout} className="tech-btn px-2 md:px-4 py-2 text-red-500 text-[10px] md:text-xs font-bold font-orbitron uppercase rounded hover:text-red-400 transition-colors">
                   KIJELENTKEZÉS
               </button>
           </div>

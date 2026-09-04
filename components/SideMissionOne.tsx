@@ -440,11 +440,11 @@ const SideMissionOne: React.FC<SideMissionOneProps> = ({ onClose, onPointsAwarde
          setSelectedUnit(null);
          
          if (newMatched.length === QUANTITIES.length) {
-             setTimeout(() => {
+             setTimeout(async () => {
                  setSimState('completed');
-                 const pts = 10;
-                 onPointsAwarded(pts);
-                 onMissionComplete("sm1_physics_quiz", pts);
+                 const newTotal = await submitMissionProgress(studentName, 10, 'sm1_physics_quiz');
+                 onPointsAwarded(newTotal);
+                 onMissionComplete("sm1_physics_quiz", newTotal);
              }, 1000);
          }
      } else {
