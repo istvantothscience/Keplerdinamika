@@ -202,30 +202,35 @@ export const saveCharacter = (cls: CharacterClass): void => {
 
 type Category = 'ora' | 'feladat' | 'projektfeladat' | 'temazaro';
 
+/**
+ * A közös iskolai rendszerben MINDEN Kepler-pont egyetlen témakörbe kerül.
+ * A konkrét küldetés a pontnapló megjegyzésében (p_note) látszik.
+ */
+const SCHOOL_TOPIC = 'Dinamika';
+
 interface SchoolMapping {
-  topic: string;
-  item: string;
+  item: string; // dedup kulcs az appon belül (mode='highest' -> küldetésenként külön sor)
   category: Category;
   note: string;
 }
 
-/** Kepler missionId -> közös iskolai rendszer témakör/kategória. `null` = nem megy át. */
+/** Kepler missionId -> közös iskolai rendszer tétel. Ami nincs itt, az nem megy át. */
 const SCHOOL_MAP: Record<string, SchoolMapping> = {
-  sm1_physics_quiz: { topic: 'Dinamika – Erőhatások', item: 'sm1', category: 'feladat', note: 'OP-01 Roncsderbi' },
-  sm2_inertia: { topic: 'Dinamika – Tehetetlenség (Newton I.)', item: 'sm2', category: 'feladat', note: 'OP-02 Inerciarendszerek' },
-  sm4_arcade_game: { topic: 'Dinamika – Newton II.', item: 'sm4', category: 'feladat', note: 'OP-04 Aszteroida mező' },
-  sm3_rocket: { topic: 'Dinamika – Hatás-ellenhatás (Newton III.)', item: 'sm3_rocket', category: 'feladat', note: 'OP-03 Rugós rakéta' },
-  sm3_billiards: { topic: 'Dinamika – Lendület, ütközés', item: 'sm5_billiards', category: 'feladat', note: 'OP-05 Newton biliárd' },
-  sm6_air_resistance: { topic: 'Dinamika – Közegellenállás', item: 'sm6', category: 'feladat', note: 'OP-06 Aerodinamika' },
-  PROJECT: { topic: 'Kutatási projekt', item: 'project', category: 'projektfeladat', note: 'Kepler kutatási projekt' },
-  TESZT: { topic: 'Dinamika témazáró', item: 'exam', category: 'temazaro', note: 'Kepler záróvizsga' },
+  sm1_physics_quiz: { item: 'sm1', category: 'feladat', note: 'Kepler OP-01 Roncsderbi (erőhatások)' },
+  sm2_inertia: { item: 'sm2', category: 'feladat', note: 'Kepler OP-02 Inerciarendszerek (Newton I.)' },
+  sm4_arcade_game: { item: 'sm4', category: 'feladat', note: 'Kepler OP-04 Aszteroida mező (Newton II.)' },
+  sm3_rocket: { item: 'sm3_rocket', category: 'feladat', note: 'Kepler OP-03 Rugós rakéta (Newton III.)' },
+  sm3_billiards: { item: 'sm5_billiards', category: 'feladat', note: 'Kepler OP-05 Newton biliárd (lendület)' },
+  sm6_air_resistance: { item: 'sm6', category: 'feladat', note: 'Kepler OP-06 Aerodinamika (közegellenállás)' },
+  PROJECT: { item: 'project', category: 'projektfeladat', note: 'Kepler kutatási projekt' },
+  TESZT: { item: 'exam', category: 'temazaro', note: 'Kepler záróvizsga' },
 };
 
 const submitToSchool = async (points: number, mapping: SchoolMapping): Promise<void> => {
   try {
     const { error } = await supabase.rpc('app_submit_score', {
       p_app: APP_ID,
-      p_topic: mapping.topic,
+      p_topic: SCHOOL_TOPIC,
       p_item: mapping.item,
       p_points: points,
       p_category: mapping.category,
